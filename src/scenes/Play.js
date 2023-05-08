@@ -398,7 +398,7 @@ export class Play extends Phaser.Scene {
         if(randomTime < 1000){
             randomTime = 1000 + Math.floor(Math.random() * 1000) - 500;
         }
-        this.time.addEvent({delay: randomTime, callback: createItem});
+        this.time.addEvent({delay: randomTime, callback: createItem.bind(this)});
         function createItem(){
             if(Math.random() > 0.2 && (this.road.speed * 10) + 10 < 60){
                 for(var i = 0; i < Math.floor(Math.random() * 5) + 1; i++){
@@ -421,7 +421,7 @@ export class Play extends Phaser.Scene {
                 randomTime = 1000 + Math.floor(Math.random() * 1000) - 500;
             }
             if(this.player.health > 0){
-                this.time.addEvent({delay: randomTime, callback: createItem});
+                this.time.addEvent({delay: randomTime, callback: createItem.bind(this)});
             }
         }
         this.jumping = false;
@@ -554,6 +554,27 @@ export class Play extends Phaser.Scene {
         }
     }
 
+    
+    skid(sprite) {
+        if(!(this.jumping || this.arc) && this.player.health > 0){
+            //TODO: Get wheel left and wheelRight sprites, track those positions
+            var skLeft = this.add.sprite(this.wheelLeft.x, this.wheelLeft.y, 'skid');
+            skLeft.rotation = this.player.rotation;
+            skLeft.tint = 0x000000;
+            var skRight = this.add.sprite(this.wheelRight.x, this.wheelRight.y, 'skid');
+            skRight.setOrigin(0.5);
+            skRight.tint = 0x000000;
+
+            skRight.setScale((0.4) * 0.00125 * game.config.width, this.road.speed/5);
+            skLeft.setScale(0.4 * 0.00125 * game.config.width, this.road.speed/5);
+
+            skLeft.rotation = sprite.rotation;
+            skRight.rotation = sprite.rotation;
+            this.skG.add(skLeft);
+            this.skG.add(skRight);
+        }
+    }
+
     update () {
         this.constant.playbackRate.value = this.road.speed;
         if(this.shadowT){
@@ -568,28 +589,9 @@ export class Play extends Phaser.Scene {
                 if(loop.cT >= time){
                     loop.pendingDelete = true;
                 }
-                skid(sprite);
+                this.skid(sprite);
             }});
             loop.cT = 0;
-        }
-        function skid(sprite){
-            if(!(this.jumping || this.arc) && this.player.health > 0){
-                //TODO: Get wheel left and wheelRight sprites, track those positions
-                var skLeft = this.add.sprite(this.wheelLeft.world.x, this.wheelLeft.world.y, 'skid');
-                skLeft.rotation = this.player.rotation;
-                skLeft.tint = 0x000000;
-                var skRight = this.add.sprite(this.wheelRight.world.x, this.wheelRight.world.y, 'skid');
-                skRight.setOrigin(0.5);
-                skRight.tint = 0x000000;
-                skLeft.scale.x = (0.4) * 0.00125 * game.config.width;
-                skRight.scale.x = 0.4 * 0.00125 * game.config.width;
-                skLeft.scale.y = this.road.speed/5;
-                skRight.scale.y = this.road.speed/5;
-                skLeft.rotation = sprite.rotation;
-                skRight.rotation = sprite.rotation;
-                this.skG.add(skLeft);
-                this.skG.add(skRight);
-            }
         }
         if(this.canInput){
             if(this.keys.up.isDown && this.keys.down.isDown && !(this.arc || this.jumping) && this.player.health > 0){
@@ -617,7 +619,7 @@ export class Play extends Phaser.Scene {
                 this.player.smoke.on = false;
             } else if (this.keys.down.isDown){
                 this.player.sprite.body.velocity.y += (20 * game.config.height/600);
-                skid(this.player);
+                this.skid(this.player);
                 //SOUND
                 // if(!this.brakeSound.isPlaying && !this.brakeSound.played){
                 //     this.brakeSound.volume = 0.2 * this.road.speed;
@@ -635,13 +637,13 @@ export class Play extends Phaser.Scene {
         }
         if((this.keys.left.isDown) && this.canInput){
             this.player.sprite.body.velocity.x -= (20 * game.config.height/600);
-            skid(this.player);
+            this.skid(this.player);
             if(!(this.jumping || this.arc)){
                 this.player.t.updateTo({angle: -30}, 400, "Linear");
             }
         } else if((this.keys.right.isDown) && this.canInput){
             this.player.sprite.body.velocity.x += (20 * game.config.height/600);
-            skid(this.player);
+            this.skid(this.player);
             if(!(this.jumping || this.arc)){
                 this.player.t.updateTo({angle: 30}, 400, "Linear");
             }
@@ -650,7 +652,7 @@ export class Play extends Phaser.Scene {
         }
         if(this.canInput){
             if(this.input.activePointer.isDown){
-                skid(this.player);
+                this.skid(this.player);
                 if(this.player.x < this.input.activePointer.x - this.player.width/4){
                     this.player.sprite.body.velocity.x += (20 * game.config.height/600);
                     if(!(this.jumping || this.arc)){
@@ -678,124 +680,199 @@ export class Play extends Phaser.Scene {
             }
         }
         if(!this.psd){
-        this.expGroup.getChildren().forEach(function(e){
-            e.x = e.car.x + e.car.width/2;
-            e.y = e.car.y + e.car.height/2;
-        });
-        if(this.player.health > 0){
-            this.road.speed += 0.002;
-        }
-        if(!this.player.hit){
-            this.speedDisplay.text = 10 + Math.floor(this.road.speed * 10) + " mph";
-        }
-        if (this.player.y + this.player.height/2 >= game.config.height - 1 && (this.keys.down.isDown || this.input.activePointer.isDown) && this.player.health > 0){
-            this.road.speed -= 0.008;
-            if(this.road.speed < 0.5){
-                this.road.speed = 0.5;
-            }
-        }
-        this.boostGroup.getChildren().forEach(function(pad){
-            pad.y += this.road.speed;
-            if(pad.y - pad.height > game.config.height){
-                pad.destroy();
-            }
-        });
-        if(this.player.health <= 0){
-            skid(this.player);
-        }
-        this.enemies.getChildren().forEach(function(enemy){
-            enemy.body.velocity.setTo(0.95 * enemy.body.velocity.x, 0.95 * enemy.body.velocity.y);
-            enemy.weapon.fireAngle = Math.floor(Math.random() * 30) - 15 + (this.physics.angleBetween(enemy, this.player) / (Math.PI/180));
-            this.physics.collide(enemy.weapon.bullets, this.blockGroup, function(b, blocker){
-                b.kill();
-                this.time.addEvent({delay: 100, function(){
-                    blocker.hp -= 25;
-                    if(blocker.hp <= 0){
-                        blocker.animations.frame = Math.floor(Math.random() * 3) + 2;
-                        blocker.currFrame = blocker.animations.frame;
-                        this.blockGroup.remove(blocker);
-                        blocker.body.velocity.setTo(0);
-                        this.destBlockGroup.add(blocker);
-                    }
-                }});
+            this.expGroup.getChildren().forEach(function(e){
+                e.x = e.car.x + e.car.width/2;
+                e.y = e.car.y + e.car.height/2;
             });
-            if(enemy.isMoving){
-                var enemyTween = this.add.tween({targets: enemy});
-                if(enemy.finished && !enemy.isDodging){
-                    var newVelX = Math.floor(Math.random() * 50) - 25;
-                    var newVelY = Math.floor(Math.random() * 50) - 25;
-                    if(enemy.x - enemy.body.velocity.x < 0){
-                        newVelX = 0;
-                    } else if (enemy.x + enemy.width + enemy.body.velocity.x > game.config.width){
-                        newVelX = 0;
-                    }
-                    if(enemy.y - enemy.body.velocity.y < 0){
-                        newVelY = 0;
-                    } else if (enemy.y + enemy.height + enemy.body.velocity.y > game.config.height){
-                        newVelY = game.config.height - enemy.height;
-                    }
-                    enemy.body.velocity.setTo(newVelX + enemy.body.velocity.x, newVelY + enemy.body.velocity.y);
-                    this.time.addEvent({delay: 1000, callback: function(){
-                        enemy.finished = true;
+            if(this.player.health > 0){
+                this.road.speed += 0.002;
+            }
+            if(!this.player.hit){
+                this.speedDisplay.text = 10 + Math.floor(this.road.speed * 10) + " mph";
+            }
+            if (this.player.y + this.player.height/2 >= game.config.height - 1 && (this.keys.down.isDown || this.input.activePointer.isDown) && this.player.health > 0){
+                this.road.speed -= 0.008;
+                if(this.road.speed < 0.5){
+                    this.road.speed = 0.5;
+                }
+            }
+            this.boostGroup.getChildren().forEach(function(pad){
+                pad.y += this.road.speed;
+                if(pad.y - pad.height > game.config.height){
+                    pad.destroy();
+                }
+            });
+            if(this.player.health <= 0){
+                this.skid(this.player);
+            }
+            this.enemies.getChildren().forEach(function(enemy){
+                enemy.body.velocity.setTo(0.95 * enemy.body.velocity.x, 0.95 * enemy.body.velocity.y);
+                enemy.weapon.fireAngle = Math.floor(Math.random() * 30) - 15 + (this.physics.angleBetween(enemy, this.player) / (Math.PI/180));
+                this.physics.collide(enemy.weapon.bullets, this.blockGroup, function(b, blocker){
+                    b.kill();
+                    this.time.addEvent({delay: 100, function(){
+                        blocker.hp -= 25;
+                        if(blocker.hp <= 0){
+                            blocker.animations.frame = Math.floor(Math.random() * 3) + 2;
+                            blocker.currFrame = blocker.animations.frame;
+                            this.blockGroup.remove(blocker);
+                            blocker.body.velocity.setTo(0);
+                            this.destBlockGroup.add(blocker);
+                        }
                     }});
-                    enemy.finished = false;
+                });
+                if(enemy.isMoving){
+                    var enemyTween = this.add.tween({targets: enemy});
+                    if(enemy.finished && !enemy.isDodging){
+                        var newVelX = Math.floor(Math.random() * 50) - 25;
+                        var newVelY = Math.floor(Math.random() * 50) - 25;
+                        if(enemy.x - enemy.body.velocity.x < 0){
+                            newVelX = 0;
+                        } else if (enemy.x + enemy.width + enemy.body.velocity.x > game.config.width){
+                            newVelX = 0;
+                        }
+                        if(enemy.y - enemy.body.velocity.y < 0){
+                            newVelY = 0;
+                        } else if (enemy.y + enemy.height + enemy.body.velocity.y > game.config.height){
+                            newVelY = game.config.height - enemy.height;
+                        }
+                        enemy.body.velocity.setTo(newVelX + enemy.body.velocity.x, newVelY + enemy.body.velocity.y);
+                        this.time.addEvent({delay: 1000, callback: function(){
+                            enemy.finished = true;
+                        }});
+                        enemy.finished = false;
+                    }
+                    if(enemy.x > enemy.prevX){
+                        enemyTween.updateTo({angle: 10}, 400, "Linear");
+                    } else if (enemy.x < enemy.prevX){
+                        enemyTween.updateTo({angle: -10}, 400, "Linear");
+                    } else {
+                        enemyTween.updateTo({angle: 0}, 400, "Linear");
+                    }
+                    enemyTween.play();
                 }
-                if(enemy.x > enemy.prevX){
-                    enemyTween.updateTo({angle: 10}, 400, "Linear");
-                } else if (enemy.x < enemy.prevX){
-                    enemyTween.updateTo({angle: -10}, 400, "Linear");
-                } else {
-                    enemyTween.updateTo({angle: 0}, 400, "Linear");
+                if(enemy.isRoading){
+                    enemy.y += this.road.speed;
                 }
-                enemyTween.play();
-            }
-            if(enemy.isRoading){
-                enemy.y += this.road.speed;
-            }
-            if(enemy.y > game.config.height){
-                enemy.car.destroy();
-                enemy.fire.pendingDelete = true;
-                enemy.destroy();
-            }
+                if(enemy.y > game.config.height){
+                    enemy.car.destroy();
+                    enemy.fire.pendingDelete = true;
+                    enemy.destroy();
+                }
+                if(!(this.jumping || this.arc)){
+                    this.physics.collide(enemy.weapon.bullets, this.player, this.death);
+                }
+                // if(enemy.prevX !== enemy.x){
+                //     this.skid(enemy);
+                // } else if (enemy.prevY > enemy.y){
+                //     this.skid(enemy);
+                // }
+                enemy.prevX = enemy.x;
+                enemy.prevY = enemy.y;
+            });
+            this.road.tilePositionY += this.road.speed /  (game.config.height/600);
             if(!(this.jumping || this.arc)){
-                this.physics.collide(enemy.weapon.bullets, this.player, this.death);
+                this.physics.overlap(this.blockGroup, this.player.weapon.bullets, function(blocker, b){
+                    if(b.hp){
+                        b.hp -= 1;
+                        if(b.hp <= 0){
+                            b.kill();
+                        } else {
+                            blocker.hp -= 1000;
+                        }
+                    } else {
+                        b.kill();
+                    }
+                    blocker.body.velocity.x = b.body.velocity.x * (this.friction * 12);
+                    blocker.body.velocity.y = b.body.velocity.y * (this.friction * 12);
+                    blocker.animations.frame = 1;
+                    this.time.addEvent({delay: 100, callback: function(){
+                        blocker.animations.frame = 0;
+                        blocker.hp -= 25;
+                        if(blocker.hp <= 0){
+                            var rand = Math.floor(Math.random() * 3) + 2;
+                            blocker.animations.frame = rand;
+                            blocker.currFrame = blocker.animations.frame;
+                            this.blockGroup.remove(blocker);
+                            blocker.body.velocity.setTo(0);
+                            this.destBlockGroup.add(blocker);
+                        }
+                    }});
+                    setTimeout(function(){
+                        this.psd = false;
+                        this.physics.isPaused = false;
+                    }, 100);
+                    this.psd = true;
+                    this.physics.isPaused = true;
+                });
+                this.physics.collide(this.blockGroup, this.player, this.death);
+                this.physics.collide(this.enemies, this.player, this.death);
+                this.physics.overlap(this.expGroup, this.player, function(p, e){
+                    if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== this.player){
+                        p.body.velocity.x += 500/(p.x - e.x);
+                        p.body.velocity.y += 500/(p.y - e.y);
+                    }
+                });
+                this.physics.overlap(this.blockGroup, this.expGroup, function(b, e){
+                    if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== b){ //For truck
+                        if(e.car === this.player){
+                            b.body.velocity.x += 10000/(b.x - e.x);
+                            b.body.velocity.y += 10000/(b.y - e.y);
+                        } else {
+                            b.body.velocity.x += 500/(b.x - e.x);
+                            b.body.velocity.y += 500/(b.y - e.y);
+                        }
+                    }
+                });
+                this.physics.overlap(this.player, this.boostGroup, function(){
+                    if(this.player.health > 0){
+                        this.jumping = true;
+                        this.road.speed += 0.5;
+                        //SOUND
+                        // this.carSound.play();
+                    }
+                });
             }
-            // if(enemy.prevX !== enemy.x){
-            //     skid(enemy);
-            // } else if (enemy.prevY > enemy.y){
-            //     skid(enemy);
-            // }
-            enemy.prevX = enemy.x;
-            enemy.prevY = enemy.y;
-        });
-        this.road.tilePositionY += this.road.speed /  (game.config.height/600);
-        if(!(this.jumping || this.arc)){
-            this.physics.overlap(this.blockGroup, this.player.weapon.bullets, function(blocker, b){
+            this.physics.overlap(this.player.weapon.bullets, this.enemies, function(b, enemy){
                 if(b.hp){
-                    b.hp -= 1;
+                    b.hp -=1;
                     if(b.hp <= 0){
                         b.kill();
                     } else {
-                        blocker.hp -= 1000;
+                        enemy.hp -= 1000;
                     }
                 } else {
                     b.kill();
                 }
-                blocker.body.velocity.x = b.body.velocity.x * (this.friction * 12);
-                blocker.body.velocity.y = b.body.velocity.y * (this.friction * 12);
-                blocker.animations.frame = 1;
-                this.time.addEvent({delay: 100, callback: function(){
-                    blocker.animations.frame = 0;
-                    blocker.hp -= 25;
-                    if(blocker.hp <= 0){
-                        var rand = Math.floor(Math.random() * 3) + 2;
-                        blocker.animations.frame = rand;
-                        blocker.currFrame = blocker.animations.frame;
-                        this.blockGroup.remove(blocker);
-                        blocker.body.velocity.setTo(0);
-                        this.destBlockGroup.add(blocker);
-                    }
-                }});
+                enemy.body.velocity.x += b.body.velocity.x * this.friction * 10;
+                enemy.body.velocity.y += b.body.velocity.y * this.friction * 10;
+                enemy.rotation += (b.rotation/20);
+                enemy.health -= 50;
+                enemy.topS.frame = 3;
+                enemy.playerFire = true;
+                if(enemy.health <= 0 && !enemy.isDown){
+                    enemy.die();
+                    enemy.isRoading = true;
+                    enemy.finished = false;
+                    enemy.tween.stop();
+                    enemy.isMoving = false;
+                    enemy.fire.pendingDelete = true;
+                    enemy.isDown = true;
+                    this.time.addEvent({delay: 50, callback: function(){
+                        enemy.topS.frame = 2;
+                        enemy.playerFire = false;
+                    }});
+                } else if(!enemy.isDown) {
+                    this.time.addEvent({delay: 50, callback: function(){
+                        enemy.topS.frame = 1;
+                        enemy.playerFire = false;
+                    }});
+                } else if(enemy.isDown){
+                    this.time.addEvent({delay: 50, callback: function(){
+                        enemy.topS.frame = 2;
+                        enemy.playerFire = false;
+                    }});
+                }
                 setTimeout(function(){
                     this.psd = false;
                     this.physics.isPaused = false;
@@ -803,242 +880,168 @@ export class Play extends Phaser.Scene {
                 this.psd = true;
                 this.physics.isPaused = true;
             });
-            this.physics.collide(this.blockGroup, this.player, this.death);
-            this.physics.collide(this.enemies, this.player, this.death);
-            this.physics.overlap(this.expGroup, this.player, function(p, e){
-                if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== this.player){
-                    p.body.velocity.x += 500/(p.x - e.x);
-                    p.body.velocity.y += 500/(p.y - e.y);
-                }
-            });
-            this.physics.overlap(this.blockGroup, this.expGroup, function(b, e){
-                if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== b){ //For truck
-                    if(e.car === this.player){
-                        b.body.velocity.x += 10000/(b.x - e.x);
-                        b.body.velocity.y += 10000/(b.y - e.y);
-                    } else {
-                        b.body.velocity.x += 500/(b.x - e.x);
-                        b.body.velocity.y += 500/(b.y - e.y);
+            this.physics.overlap(this.enemies, this.expGroup, function(en, e){
+                if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== en){
+                    if(e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8){
+                        if(e.car === this.player){
+                            en.body.velocity.x += 10000/(en.x - e.x);
+                            en.body.velocity.y += 10000/(en.y - e.y);
+                        } else {
+                            en.body.velocity.x += 500/(en.x - e.x);
+                            en.body.velocity.y += 500/(en.y - e.y);
+                        }
                     }
                 }
-            });
-            this.physics.overlap(this.player, this.boostGroup, function(){
-                if(this.player.health > 0){
-                    this.jumping = true;
-                    this.road.speed += 0.5;
-                    //SOUND
-                    // this.carSound.play();
+            })
+            this.physics.overlap(this.enemies, this.enemies, function(e1, e2){
+                if(!e1.isDown){
+                    e1.vel = e1.body.velocity;
                 }
-            });
-        }
-        this.physics.overlap(this.player.weapon.bullets, this.enemies, function(b, enemy){
-            if(b.hp){
-                b.hp -=1;
-                if(b.hp <= 0){
-                    b.kill();
+                if(!e2.isDown){
+                    e2.vel = e2.body.velocity;
+                }
+                if(!e1.vel){
+                    e1.vel = e1.body.velocity;
+                }
+                if(!e2.vel){
+                    e2.vel = e2.body.velocity;
+                }
+                e1.body.velocity.y += e2.vel.y;
+                e1.body.velocity.y -= e1.vel.y;
+                e1.body.velocity.x -= e1.vel.x;
+                e1.body.velocity.x += e2.vel.x;
+                if(!e1.isDown){
+                    e1.die();
+                }
+                e2.body.velocity.x += e1.vel.x;
+                e2.body.velocity.x -= e2.vel.x;
+                e2.body.velocity.y -= e2.vel.y;
+                e2.body.velocity.y += e1.vel.y;
+                if(!e2.isDown){
+                    e2.die();
+                }
+                e1.isRoading = true;
+                e1.finished = false;
+                e1.tween.stop();
+                e1.isMoving = false;
+                e2.isRoading = true;
+                e2.finished = false;
+                e2.tween.stop();
+                e2.isMoving = false;
+                e1.isDown = true;
+                e2.isDown = true;
+                if(e1.health > 50 && !e1.isDown){
+                    e1.health = 1;
                 } else {
-                    enemy.hp -= 1000;
+                    e1.fire.pendingDelete = true;
                 }
-            } else {
-                b.kill();
-            }
-            enemy.body.velocity.x += b.body.velocity.x * this.friction * 10;
-            enemy.body.velocity.y += b.body.velocity.y * this.friction * 10;
-            enemy.rotation += (b.rotation/20);
-            enemy.health -= 50;
-            enemy.topS.frame = 3;
-            enemy.playerFire = true;
-            if(enemy.health <= 0 && !enemy.isDown){
-                enemy.die();
-                enemy.isRoading = true;
-                enemy.finished = false;
-                enemy.tween.stop();
-                enemy.isMoving = false;
-                enemy.fire.pendingDelete = true;
-                enemy.isDown = true;
-                this.time.addEvent({delay: 50, callback: function(){
-                    enemy.topS.frame = 2;
-                    enemy.playerFire = false;
-                }});
-            } else if(!enemy.isDown) {
-                this.time.addEvent({delay: 50, callback: function(){
-                    enemy.topS.frame = 1;
-                    enemy.playerFire = false;
-                }});
-            } else if(enemy.isDown){
-                this.time.addEvent({delay: 50, callback: function(){
-                    enemy.topS.frame = 2;
-                    enemy.playerFire = false;
-                }});
-            }
-            setTimeout(function(){
-                this.psd = false;
-                this.physics.isPaused = false;
-            }, 100);
-            this.psd = true;
-            this.physics.isPaused = true;
-        });
-        this.physics.overlap(this.enemies, this.expGroup, function(en, e){
-            if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== en){
-                if(e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8){
-                    if(e.car === this.player){
-                        en.body.velocity.x += 10000/(en.x - e.x);
-                        en.body.velocity.y += 10000/(en.y - e.y);
-                    } else {
-                        en.body.velocity.x += 500/(en.x - e.x);
-                        en.body.velocity.y += 500/(en.y - e.y);
-                    }
+                if(e2.health > 50 && !e2.isDown){
+                    e2.health = 1;
+                } else {
+                    e2.fire.pendingDelete = true;
                 }
-            }
-        })
-        this.physics.overlap(this.enemies, this.enemies, function(e1, e2){
-            if(!e1.isDown){
-                e1.vel = e1.body.velocity;
-            }
-            if(!e2.isDown){
-                e2.vel = e2.body.velocity;
-            }
-            if(!e1.vel){
-                e1.vel = e1.body.velocity;
-            }
-            if(!e2.vel){
-                e2.vel = e2.body.velocity;
-            }
-            e1.body.velocity.y += e2.vel.y;
-            e1.body.velocity.y -= e1.vel.y;
-            e1.body.velocity.x -= e1.vel.x;
-            e1.body.velocity.x += e2.vel.x;
-            if(!e1.isDown){
-                e1.die();
-            }
-            e2.body.velocity.x += e1.vel.x;
-            e2.body.velocity.x -= e2.vel.x;
-            e2.body.velocity.y -= e2.vel.y;
-            e2.body.velocity.y += e1.vel.y;
-            if(!e2.isDown){
-                e2.die();
-            }
-            e1.isRoading = true;
-            e1.finished = false;
-            e1.tween.stop();
-            e1.isMoving = false;
-            e2.isRoading = true;
-            e2.finished = false;
-            e2.tween.stop();
-            e2.isMoving = false;
-            e1.isDown = true;
-            e2.isDown = true;
-            if(e1.health > 50 && !e1.isDown){
-                e1.health = 1;
-            } else {
-                e1.fire.pendingDelete = true;
-            }
-            if(e2.health > 50 && !e2.isDown){
-                e2.health = 1;
-            } else {
-                e2.fire.pendingDelete = true;
-            }
-        });
-        this.physics.overlap(this.enemies, this.blockGroup, function(e, b){
-            e.isRoading = true;
-            e.finished = false;
-            e.tween.stop();
-            b.body.velocity.x += e.body.velocity.x * this.road.speed * this.friction;
-            b.body.velocity.y += e.body.velocity.y * this.road.speed * this.friction;
-            e.isMoving = false;
-            if(!e.isDown){
-                e.die();
-            }
-            if(e.health > 50 && !e.isDown){
-                e.isDown = true;
-                e.health = 1;
-            } else {
-                e.isDown = true;
-                e.fire.pendingDelete = true;
-            }
-        });
-        if(this.jumping){
-            this.player.gun.alpha = 0;
-            this.player.removeChild(this.player.gun);
-            this.player.addChild(this.player.gun);
-            this.player.gun.canShoot = false;
-            if(this.player.scale.x > 1.6 * game.config.width/3000 && this.midair === false){
-                this.midair = true;
-                setTimeout(function(){
-                    this.arc = true;
-                    this.jumping = false;
-                    this.midair = false;
-                }, 500);
-            } else {
-                // this.constant.volume += 0.01;
-                //SOUND
-                this.midair = false;
-                this.player.scale.x += 0.02 * (game.config.width/3000);
-                this.player.scale.y += 0.02 * (game.config.width/3000);
-                this.shadow.x += 2;
-                this.player.x -= 2;
-                this.player.t.updateTo({angle: 0}, 400, "Linear");
-            }
-        } else if (this.arc){
-            this.player.scale.x -= 0.02 * (game.config.width/3000);
-            this.player.scale.y -= 0.02 * (game.config.width/3000);
-            this.shadow.x -= 2;
-            this.player.x += 2;
-            // this.constant.volume -= 0.01;
-            //SOUND
-            if(this.player.scale.x <= game.config.width/3000){
-                this.arc = false;
-                this.player.gun.alpha = 1;
-                skidTimeInt(50, this.player);
-                this.cameras.main.shake(500, 0.02);
-                this.player.smoke.on = true;
-                this.player.setScale(game.config.width/3000);
-                this.shadow.x = 10;
-                this.shadow.y = 12;
-                this.canInput = true;
-                this.player.gun.canShoot = true;
+            });
+            this.physics.overlap(this.enemies, this.blockGroup, function(e, b){
+                e.isRoading = true;
+                e.finished = false;
+                e.tween.stop();
+                b.body.velocity.x += e.body.velocity.x * this.road.speed * this.friction;
+                b.body.velocity.y += e.body.velocity.y * this.road.speed * this.friction;
+                e.isMoving = false;
+                if(!e.isDown){
+                    e.die();
+                }
+                if(e.health > 50 && !e.isDown){
+                    e.isDown = true;
+                    e.health = 1;
+                } else {
+                    e.isDown = true;
+                    e.fire.pendingDelete = true;
+                }
+            });
+            if(this.jumping){
+                this.player.gun.alpha = 0;
                 this.player.removeChild(this.player.gun);
-                this.player.addChildAt(this.player.gun, 0);
+                this.player.addChild(this.player.gun);
+                this.player.gun.canShoot = false;
+                if(this.player.scale.x > 1.6 * game.config.width/3000 && this.midair === false){
+                    this.midair = true;
+                    setTimeout(function(){
+                        this.arc = true;
+                        this.jumping = false;
+                        this.midair = false;
+                    }, 500);
+                } else {
+                    // this.constant.volume += 0.01;
+                    //SOUND
+                    this.midair = false;
+                    this.player.scale.x += 0.02 * (game.config.width/3000);
+                    this.player.scale.y += 0.02 * (game.config.width/3000);
+                    this.shadow.x += 2;
+                    this.player.x -= 2;
+                    this.player.t.updateTo({angle: 0}, 400, "Linear");
+                }
+            } else if (this.arc){
+                this.player.scale.x -= 0.02 * (game.config.width/3000);
+                this.player.scale.y -= 0.02 * (game.config.width/3000);
+                this.shadow.x -= 2;
+                this.player.x += 2;
+                // this.constant.volume -= 0.01;
+                //SOUND
+                if(this.player.scale.x <= game.config.width/3000){
+                    this.arc = false;
+                    this.player.gun.alpha = 1;
+                    skidTimeInt(50, this.player);
+                    this.cameras.main.shake(500, 0.02);
+                    this.player.smoke.on = true;
+                    this.player.setScale(game.config.width/3000);
+                    this.shadow.x = 10;
+                    this.shadow.y = 12;
+                    this.canInput = true;
+                    this.player.gun.canShoot = true;
+                    this.player.removeChild(this.player.gun);
+                    this.player.addChildAt(this.player.gun, 0);
+                }
             }
-        }
-        this.skG.getChildren().forEach(function(i){
-            i.y += this.road.speed;
-            if(i.y > game.config.height + i.height){
-                i.destroy();
+            this.skG.getChildren().forEach(function(i){
+                i.y += this.road.speed;
+                if(i.y > game.config.height + i.height){
+                    i.destroy();
+                }
+            }, this);
+            this.destBlockGroup.getChildren().forEach(function(i){
+                i.y += this.road.speed;
+                i.animations.frame = i.currFrame;
+                if(i.y > game.config.height + i.height){
+                    i.destroy();
+                }
+            }, this);
+            if((this.fire.isDown || this.altFire.isDown || this.input.activePointer.isDown) && !(this.arc || this.jumping) && this.player.health > 0){
+                this.player.weapon.fireAngle = this.player.angle - 90;
+                this.player.weapon.fire();
             }
-        });
-        this.destBlockGroup.getChildren().forEach(function(i){
-            i.y += this.road.speed;
-            i.animations.frame = i.currFrame;
-            if(i.y > game.config.height + i.height){
-                i.destroy();
-            }
-        });
-        if((this.fire.isDown || this.altFire.isDown || this.input.activePointer.isDown) && !(this.arc || this.jumping) && this.player.health > 0){
-            this.player.weapon.fireAngle = this.player.angle - 90;
-            this.player.weapon.fire();
-        }
-        this.blockGroup.getChildren().forEach(function(i){
-            i.y += this.road.speed;
-            i.body.velocity.setTo(0.95 * i.body.velocity.x, 0.95 * i.body.velocity.y);
-            this.enemies.forEach(function(e){
-                this.physics.overlap(this.expGroup, e.weapon.bullets, function(ex, b){
-                    if((ex.anim.frame === 6 || ex.anim.frame === 7 || ex.anim.frame === 8)){
-                        b.body.velocity.x += 90/(b.x - ex.x);
-                        b.body.velocity.y += 90/(b.y - ex.y);
+            this.blockGroup.getChildren().forEach(function(i){
+                i.y += this.road.speed;
+                i.body.velocity.setTo(0.95 * i.body.velocity.x, 0.95 * i.body.velocity.y);
+                this.enemies.forEach(function(e){
+                    this.physics.overlap(this.expGroup, e.weapon.bullets, function(ex, b){
+                        if((ex.anim.frame === 6 || ex.anim.frame === 7 || ex.anim.frame === 8)){
+                            b.body.velocity.x += 90/(b.x - ex.x);
+                            b.body.velocity.y += 90/(b.y - ex.y);
+                        }
+                    });
+                    this.avoidObstacles(i, e);
+                    if(e.y > game.config.height + e.height){
+                        e.destroy();
                     }
                 });
-                this.avoidObstacles(i, e);
-                if(e.y > game.config.height + e.height){
-                    e.destroy();
+                if(i.y > game.config.height + i.height){
+                    i.destroy();
                 }
-            });
-            if(i.y > game.config.height + i.height){
-                i.destroy();
-            }
-        });
-        this.road.prevSpeed = this.road.speed;
+            }, this);
+            this.road.prevSpeed = this.road.speed;
         }
+        
         if(!this.player.tween){
             this.player.t.play();
         }
