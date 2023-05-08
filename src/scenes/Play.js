@@ -65,16 +65,16 @@ export class Play extends Phaser.Scene {
 
         if(false){
             //TODO: Fix
-            game.shadowT = this.add.sprite(game.config.width, game.config.height/2, 'truck');
+            this.shadowT = this.add.sprite(game.config.width, game.config.height/2, 'truck');
             var truck = this.add.sprite(game.config.width, game.config.height/2, 'truck');
-            game.shadowT.alpha = 0.8;
-            game.shadowT.tint = 0x000000;
-            game.shadowT.truck = truck;
+            this.shadowT.alpha = 0.8;
+            this.shadowT.tint = 0x000000;
+            this.shadowT.truck = truck;
             truck.opacity = 0;
             truck.setScale(game.config.width/1000);
-            game.shadowT.setScale(game.config.width/1000);
+            this.shadowT.setScale(game.config.width/1000);
             truck.setOrigin(0.5);
-            game.shadowT.setOrigin(0.5);
+            this.shadowT.setOrigin(0.5);
             truck.x += truck.width/2;
             var truckTweenX = this.add.tween(truck);
             truckTweenX.to({x: this.road.x + this.road.width + truck.width/2}, 3000);
@@ -88,8 +88,8 @@ export class Play extends Phaser.Scene {
                 exp.setScale(3 * game.config.width/800);
                 exp.anim = exp.animations.add('explode');
                 var dec = false;
-                game.blockGroup.add(game.shadowT);
-                game.blockGroup.add(truck);
+                this.blockGroup.add(this.shadowT);
+                this.blockGroup.add(truck);
                 var int = setInterval(function(){
                     if(exp.anim.frame >= 7){
                         dec = true;
@@ -107,9 +107,9 @@ export class Play extends Phaser.Scene {
                     exp.destroy();
                 }, this);
                 exp.car = truck;
-                game.expGroup.add(exp);
+                this.expGroup.add(exp);
                 truck.animations.frame = 1;
-                game.shadowT.animations.frame = 1;
+                this.shadowT.animations.frame = 1;
                 this.cameras.main.shake(0.05, 500);
                 exp.animations.play('explode', 12, false);
                 startGame();
@@ -187,32 +187,32 @@ export class Play extends Phaser.Scene {
         });
         this.player.health = 100;
         this.player.maxHealth = 100;
-        this.fire = game.input.keyboard.addKey(Phaser.KeyCode.CONTROL);
-        this.altFire = game.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
+        this.fire = this.input.keyboard.addKey(Phaser.KeyCode.CONTROL);
+        this.altFire = this.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
     }
 
     startGame() {
         this.psd = false;
         this.keys.down.onDown.add(function(){
             if(this.player.health > 0){
-                game.timeDown = 0;
-                game.time.events.add(100, function(){
-                    if(!(game.arc || game.jumping)){
+                this.timeDown = 0;
+                this.time.events.add(100, function(){
+                    if(!(this.arc || this.jumping)){
                         this.player.smoke.on = true;
                         this.player.smoke.gravity = this.player.body.velocity.y;
                     }
                 });
-                if(!(game.arc || game.jumping)){
+                if(!(this.arc || this.jumping)){
                     this.cameras.main.shake(100, 0.01);
                 }
             }
         });
         this.keys.down.onUp.add(function(){
-            if(game.timeDown > 100 && game.timeDown < 500){
-                this.road.speed += game.timeDown/100;
-                this.player.body.velocity.y -= game.timeDown * 10;
+            if(this.timeDown > 100 && this.timeDown < 500){
+                this.road.speed += this.timeDown/100;
+                this.player.body.velocity.y -= this.timeDown * 10;
             }
-            if(game.timeDown > 500){
+            if(this.timeDown > 500){
                 this.road.speed += 5;
                 this.player.body.velocity.y -= 5000;
             }
@@ -224,7 +224,7 @@ export class Play extends Phaser.Scene {
         this.player.x += 0.1;
         game.car.x -= 0.1;
         */
-        game.avoidObstacles = function(blocker, enemy){
+        this.avoidObstacles = function(blocker, enemy){
             //Check for collision between enemy ando bstacles.
             if(blocker.x - blocker.width < enemy.x + enemy.width && blocker.x + blocker.width > enemy.x - enemy.width && !enemy.isDodging && blocker.y <= enemy.y && !enemy.isDown){ //Am I on a collision course with an obstacle, and am I alive?
                 enemy.tween.stop(); //Stop moving side to side
@@ -240,7 +240,7 @@ export class Play extends Phaser.Scene {
                 enemy.tween.onUpdateCallback(enemy.updatePos, enemy); //Check if I need to go, change "this" references to enemy object.
             }
         }
-        game.enemySpawn = game.time.events.loop(3000, function(){
+        this.enemySpawn = this.time.events.loop(3000, function(){
             var random = Math.floor(Math.random() * 2);
             var x = -this.player.width;
             if(random === 1){
@@ -271,7 +271,7 @@ export class Play extends Phaser.Scene {
             enemy.updatePos = function(){ //Determines if the enemy no longer needs to move out of the way
                 var shouldMove = false; //Should I keep moving?
                 var self = this; //Ref to enemy
-                game.blockGroup.forEach(function(b){
+                this.blockGroup.forEach(function(b){
                     if(b.x - b.width < self.x + self.width && b.x + b.width > self.x - self.width){
                         shouldMove = true; //If I'm in the way of any obstacles, I want to keep moving
                     }
@@ -322,8 +322,8 @@ export class Play extends Phaser.Scene {
             enemy.tween.onComplete.add(function(){
                 enemy.finished = true;
             });
-            enemy.index = game.time.events.events.length;
-            enemy.fire = game.time.events.loop(1000, function(){
+            enemy.index = this.time.events.events.length;
+            enemy.fire = this.time.events.loop(1000, function(){
                 if(this.player.health > 0){
                     enemy.weapon.fire();
                     this.add.sound('fire', 0.7).play();
@@ -366,15 +366,15 @@ export class Play extends Phaser.Scene {
                 if(!enemy.playerFire){
                     enemy.topS.frame = 2;
                 }
-                game.expGroup.add(enemy.e);
+                this.expGroup.add(enemy.e);
             }
-            game.enemies.add(enemy);
+            this.enemies.add(enemy);
         });
         var randomTime = Math.floor(Math.random() * (3000 -1000 - (this.road.speed * 100)) + 1000);
         if(randomTime < 1000){
             randomTime = 1000 + Math.floor(Math.random() * 1000) - 500;
         }
-        game.time.events.add(randomTime, createItem);
+        this.time.events.add(randomTime, createItem);
         function createItem(){
             if(Math.random() > 0.2 && (this.road.speed * 10) + 10 < 60){
                 for(var i = 0; i < Math.floor(Math.random() * 5) + 1; i++){
@@ -389,7 +389,7 @@ export class Play extends Phaser.Scene {
                     var sprite = this.add.sprite(randomX, -100, 'roadblock');
                     sprite.hp = 100;
                     sprite.setScale(0.00125 * game.config.width);
-                    game.blockGroup.add(sprite);
+                    this.blockGroup.add(sprite);
                 }
             }
             var randomTime = Math.floor(Math.random() * (3000 -1000 - (this.road.speed * 100)) + 1000);
@@ -397,14 +397,14 @@ export class Play extends Phaser.Scene {
                 randomTime = 1000 + Math.floor(Math.random() * 1000) - 500;
             }
             if(this.player.health > 0){
-                game.time.events.add(randomTime, createItem);
+                this.time.events.add(randomTime, createItem);
             }
         }
-        game.jumping = false;
-        game.midair = false;
-        game.arc = false;
+        this.jumping = false;
+        this.midair = false;
+        this.arc = false;
         this.player.weapon.bulletRotateToVelocity = true;
-        game.spawnPad = game.time.events.loop(9000, function(){
+        this.spawnPad = this.time.events.loop(9000, function(){
             var randX = Math.floor(Math.random() * game.config.width);
             var padShadow = this.add.sprite(randX + 12, -500, 'padSheet');
             var pad = this.add.sprite(randX, -500, 'padSheet');
@@ -414,137 +414,138 @@ export class Play extends Phaser.Scene {
             pad.animations.play('go', 12, true);
             pad.setScale(0.00125 * game.config.width);
             padShadow.setScale(game.config.width/800);
-            game.boostGroup.add(padShadow);
-            game.boostGroup.add(pad);
+            this.boostGroup.add(padShadow);
+            this.boostGroup.add(pad);
         });
         //TO ADD(?):
-        // b.body.velocity.x += p.body.velocity.x * game.friction;
-            // b.body.velocity.y += p.body.velocity.y * game.friction;
-            // p.body.velocity.x += vel.x * game.friction;
-            // p.body.velocity.y += vel.y * game.friction;
+        // b.body.velocity.x += p.body.velocity.x * this.friction;
+            // b.body.velocity.y += p.body.velocity.y * this.friction;
+            // p.body.velocity.x += vel.x * this.friction;
+            // p.body.velocity.y += vel.y * this.friction;
             // if(b.y > p.y - p.height/2 && b.y < p.y + p.height/2){ //Overlap in y?
             //     if(b.y < p.y + p.height/2){ //Blocker in front of player (mostly)?
             //         b.y -= (p.y - p.height/2) - (b.y - b.height/2);
             //     }   
             // }
-        game.death = function(p, b){
-            var sound = soundManager.play('crash');
-            sound.playbackRate.value = Math.random() * 2;
-            var vel = b.body.velocity;
-            setTimeout(function(){
-                this.psd = false;
-                this.physics.arcade.isPaused = false;
-            }, 100);
-            this.psd = true; //Pause game motion momentarily to make hits "feel" better.
-            this.physics.arcade.isPaused = true;
-            this.player.health -= 100; //Reduce player health
-            if(this.player.health <= 0){ //Does the player die?
-                var button = this.add.button(game.config.width/2, game.config.height + 50, game.buttonSprite, function(){
-                    game.state.start('play');
-                });
-                var text = this.add.text(0, 0, "Try it again", {
-                    fill: "#ffffff",
-                    font: "20px Arial"
-                });
-                button.tint = 0xff0000;
-                button.setOrigin(0.5);
-                text.setOrigin(0.5);
-                button.addChild(text);
-                var tween = this.add.tween(button);
-                tween.to({y: game.config.height/2}, 1000);
-                tween.start();
-                this.cameras.main.shake(1000, 0.05); //Shake camera
-                if(!(game.jumping || game.arc) && !this.dying){ //If the player is not in mid-air or has already been hit by a bullet
-                    if(!game.played){ //If the sound of the car crashing hadn't already been played
-                        this.add.sound('crash', 0.5).play();
-                    }
-                    this.dying = true; //The player is dying
-                    //SOUND
-                    // this.carSound.pause();
-                    // this.brakeSound.pause();
-                    // this.constant.pause();
-                    game.played = true;
-                    game.canInput = false;
-                    this.player.topS.frame = 2; //Show damage on the car
-                    this.player.body.velocity.y -= 10 + Math.floor(this.road.speed * 10) * 400; //Road stops, launch player
-                    this.player.body.collideWorldBounds = false;
-                    game.enemies.children.forEach(function(child){
-                        if(!child.isDown){
-                            child.tween.stop();
-                            child.finished = false;
-                            child.body.velocity.y -= this.road.speed * 400; //Launch enemies
-                        }
-                    });
-                    if(!this.player.hit){
-                        var exp = this.add.sprite(-10, -15, 'explosion'); //Generate explosion
-                        exp.setOrigin(0.5);
-                        exp.setScale(10);
-                        exp.anim = exp.animations.add('explode');
-                        exp.animations.play('explode', 15, false);
-                        var dec = false;
-                        var int = setInterval(function(){
-                            if(exp.anim.frame >= 7){
-                                dec = true;
-                            }
-                            if(!dec){
-                                exp.scale.x += 0.01 * game.config.width/800;
-                                exp.scale.y += 0.01 * game.config.width/800;
-                            } else {
-                                exp.scale.x -= 0.01 * game.config.width/800;
-                                exp.scale.y -= 0.01 * game.config.width/800;
-                            }
-                        }, 1);
-                        exp.anim.onComplete.add(function(){ //Remove explosion on completion of animation
-                            clearInterval(int);
-                            exp.destroy();
-                            game.enemySpawn.loop = false;
-                            game.spawnPad.loop = false;
-                            game.spawnPad.pendingDelete = true;
-                            game.enemySpawn.pendingDelete = true;
-                            game.canInput = false;
-                            this.player.smoke.on = false;
-                        }, this);
-                        this.player.hit = true;
-                        exp.car = this.player; //Set Explosion to track player car
-                        game.expGroup.add(exp);
-                    }
-                    b.body.velocity.y -= this.road.speed * 100;
-                    game.enemies.forEach(function(e){
-                        e.weapon.bullets.children.forEach(function(bull){
-                            if(!bull.done){
-                                bull.body.velocity.y -= this.road.speed * 400; //Speed up bullets
-                                bull.done = true;
-                            }
-                        });
-                    });
-                    this.road.speed = 0; //Stop road
-                }
-            }
-            if(b.key === "enemyBullet"){ //Destroy bullet on hit
-                b.kill();
-            }
-        };
-        game.canInput = false;
+        this.canInput = false;
         this.player.tween = this.add.tween(this.player);
         this.player.tween.to({y: game.config.height - 50}, 1000);
         this.player.tween.onComplete.add(function(){
-            game.canInput = true;
+            this.canInput = true;
             this.player.body.collideWorldBounds = true;
             this.player.tween = null;
         });
         this.player.tween.start();
     }
 
+    death(p, b) {
+        var sound = soundManager.play('crash');
+        sound.playbackRate.value = Math.random() * 2;
+        var vel = b.body.velocity;
+        setTimeout(function(){
+            this.psd = false;
+            this.physics.arcade.isPaused = false;
+        }, 100);
+        this.psd = true; //Pause game motion momentarily to make hits "feel" better.
+        this.physics.arcade.isPaused = true;
+        this.player.health -= 100; //Reduce player health
+        if(this.player.health <= 0){ //Does the player die?
+            var button = this.add.button(game.config.width/2, game.config.height + 50, game.buttonSprite, function(){
+                game.state.start('play');
+            });
+            var text = this.add.text(0, 0, "Try it again", {
+                fill: "#ffffff",
+                font: "20px Arial"
+            });
+            button.tint = 0xff0000;
+            button.setOrigin(0.5);
+            text.setOrigin(0.5);
+            button.addChild(text);
+            var tween = this.add.tween(button);
+            tween.to({y: game.config.height/2}, 1000);
+            tween.start();
+            this.cameras.main.shake(1000, 0.05); //Shake camera
+            if(!(this.jumping || this.arc) && !this.dying){ //If the player is not in mid-air or has already been hit by a bullet
+                if(!game.played){ //If the sound of the car crashing hadn't already been played
+                    this.add.sound('crash', 0.5).play();
+                }
+                this.dying = true; //The player is dying
+                //SOUND
+                // this.carSound.pause();
+                // this.brakeSound.pause();
+                // this.constant.pause();
+                game.played = true;
+                this.canInput = false;
+                this.player.topS.frame = 2; //Show damage on the car
+                this.player.body.velocity.y -= 10 + Math.floor(this.road.speed * 10) * 400; //Road stops, launch player
+                this.player.body.collideWorldBounds = false;
+                this.enemies.children.forEach(function(child){
+                    if(!child.isDown){
+                        child.tween.stop();
+                        child.finished = false;
+                        child.body.velocity.y -= this.road.speed * 400; //Launch enemies
+                    }
+                });
+                if(!this.player.hit){
+                    var exp = this.add.sprite(-10, -15, 'explosion'); //Generate explosion
+                    exp.setOrigin(0.5);
+                    exp.setScale(10);
+                    exp.anim = exp.animations.add('explode');
+                    exp.animations.play('explode', 15, false);
+                    var dec = false;
+                    var int = setInterval(function(){
+                        if(exp.anim.frame >= 7){
+                            dec = true;
+                        }
+                        if(!dec){
+                            exp.scale.x += 0.01 * game.config.width/800;
+                            exp.scale.y += 0.01 * game.config.width/800;
+                        } else {
+                            exp.scale.x -= 0.01 * game.config.width/800;
+                            exp.scale.y -= 0.01 * game.config.width/800;
+                        }
+                    }, 1);
+                    exp.anim.onComplete.add(function(){ //Remove explosion on completion of animation
+                        clearInterval(int);
+                        exp.destroy();
+                        this.enemySpawn.loop = false;
+                        this.spawnPad.loop = false;
+                        this.spawnPad.pendingDelete = true;
+                        this.enemySpawn.pendingDelete = true;
+                        this.canInput = false;
+                        this.player.smoke.on = false;
+                    }, this);
+                    this.player.hit = true;
+                    exp.car = this.player; //Set Explosion to track player car
+                    this.expGroup.add(exp);
+                }
+                b.body.velocity.y -= this.road.speed * 100;
+                this.enemies.forEach(function(e){
+                    e.weapon.bullets.children.forEach(function(bull){
+                        if(!bull.done){
+                            bull.body.velocity.y -= this.road.speed * 400; //Speed up bullets
+                            bull.done = true;
+                        }
+                    });
+                });
+                this.road.speed = 0; //Stop road
+            }
+        }
+        if(b.key === "enemyBullet"){ //Destroy bullet on hit
+            b.kill();
+        }
+    }
+
     update () {
         this.constant.playbackRate.value = this.road.speed;
-        if(game.shadowT){
-            game.shadowT.x = game.shadowT.truck.x + 5;
-            game.shadowT.y = game.shadowT.truck.y + 5;
+        if(this.shadowT){
+            this.shadowT.x = this.shadowT.truck.x + 5;
+            this.shadowT.y = this.shadowT.truck.y + 5;
         }
         this.player.body.velocity.setTo(0.9 * this.player.body.velocity.x, 0.9 * this.player.body.velocity.y);
         this.player.t = this.add.tween(this.player);
         function skidTimeInt(time, sprite){
-            var loop = game.time.events.loop(1, function(){
+            var loop = this.time.events.loop(1, function(){
                 loop.cT += 1;
                 if(loop.cT >= time){
                     loop.pendingDelete = true;
@@ -554,7 +555,7 @@ export class Play extends Phaser.Scene {
             loop.cT = 0;
         }
         function skid(sprite){
-            if(!(game.jumping || game.arc) && this.player.health > 0){
+            if(!(this.jumping || this.arc) && this.player.health > 0){
                 //TODO: Get wheel left and wheelRight sprites, track those positions
                 var skLeft = this.add.sprite(this.wheelLeft.world.x, this.wheelLeft.world.y, 'skid');
                 skLeft.rotation = this.player.rotation;
@@ -568,13 +569,13 @@ export class Play extends Phaser.Scene {
                 skRight.scale.y = this.road.speed/5;
                 skLeft.rotation = sprite.rotation;
                 skRight.rotation = sprite.rotation;
-                game.skG.add(skLeft);
-                game.skG.add(skRight);
+                this.skG.add(skLeft);
+                this.skG.add(skRight);
             }
         }
-        if(game.canInput){
-            if(this.keys.up.isDown && this.keys.down.isDown && !(game.arc || game.jumping) && this.player.health > 0){
-              game.timeDown += 1;
+        if(this.canInput){
+            if(this.keys.up.isDown && this.keys.down.isDown && !(this.arc || this.jumping) && this.player.health > 0){
+              this.timeDown += 1;
               this.cameras.main.shake(100, 0.01);
               this.player.smoke.on = true;
               this.player.smoke.gravity = 0;
@@ -614,44 +615,44 @@ export class Play extends Phaser.Scene {
                 this.player.smoke.on = false;
             }
         }
-        if((this.keys.left.isDown) && game.canInput){
+        if((this.keys.left.isDown) && this.canInput){
             this.player.body.velocity.x -= (20 * game.config.height/600);
             skid(this.player);
-            if(!(game.jumping || game.arc)){
+            if(!(this.jumping || this.arc)){
                 this.player.t.to({angle: -30}, 400, "Linear");
             }
-        } else if((this.keys.right.isDown) && game.canInput){
+        } else if((this.keys.right.isDown) && this.canInput){
             this.player.body.velocity.x += (20 * game.config.height/600);
             skid(this.player);
-            if(!(game.jumping || game.arc)){
+            if(!(this.jumping || this.arc)){
                 this.player.t.to({angle: 30}, 400, "Linear");
             }
-        } else if(!game.input.activePointer.isDown && game.canInput) {
+        } else if(!this.input.activePointer.isDown && this.canInput) {
             this.player.t.to({angle: 0}, 400, "Linear");
         }
-        if(game.canInput){
-            if(game.input.activePointer.isDown){
+        if(this.canInput){
+            if(this.input.activePointer.isDown){
                 skid(this.player);
-                if(this.player.x < game.input.activePointer.x - this.player.width/4){
+                if(this.player.x < this.input.activePointer.x - this.player.width/4){
                     this.player.body.velocity.x += (20 * game.config.height/600);
-                    if(!(game.jumping || game.arc)){
+                    if(!(this.jumping || this.arc)){
                         this.player.t.to({angle: 30}, 400, "Linear");
                     }
-                } else if (this.player.x > game.input.activePointer.x + this.player.width/4){
+                } else if (this.player.x > this.input.activePointer.x + this.player.width/4){
                     this.player.body.velocity.x -= (20 * game.config.height/600);
-                    if(!(game.jumping || game.arc)){
+                    if(!(this.jumping || this.arc)){
                         this.player.t.to({angle: -30}, 400, "Linear");
                     }
                 } else {
                     this.player.t.to({angle: 0}, 400, "Linear");
                 }
-                if(this.player.y < game.input.activePointer.y - this.player.height/4){
+                if(this.player.y < this.input.activePointer.y - this.player.height/4){
                     this.player.body.velocity.y += (20 * game.config.height/600);
-                    if(!(game.arc || game.jumping) && this.player.health > 0){
+                    if(!(this.arc || this.jumping) && this.player.health > 0){
                         this.player.smoke.on = true;
                         this.player.smoke.gravity = this.player.body.velocity.y;
                     }
-                } else if (this.player.y > game.input.activePointer.y + this.player.height/4){
+                } else if (this.player.y > this.input.activePointer.y + this.player.height/4){
                     this.player.body.velocity.y -= (20 * game.config.height/600);
                 } else {
                     this.player.smoke.on = false;
@@ -659,7 +660,7 @@ export class Play extends Phaser.Scene {
             }
         }
         if(!this.psd){
-        game.expGroup.forEach(function(e){
+        this.expGroup.forEach(function(e){
             e.x = e.car.x + e.car.width/2;
             e.y = e.car.y + e.car.height/2;
         });
@@ -667,15 +668,15 @@ export class Play extends Phaser.Scene {
             this.road.speed += 0.002;
         }
         if(!this.player.hit){
-            game.speedDisplay.text = 10 + Math.floor(this.road.speed * 10) + " mph";
+            this.speedDisplay.text = 10 + Math.floor(this.road.speed * 10) + " mph";
         }
-        if (this.player.y + this.player.height/2 >= game.config.height - 1 && (this.keys.down.isDown || game.input.activePointer.isDown) && this.player.health > 0){
+        if (this.player.y + this.player.height/2 >= game.config.height - 1 && (this.keys.down.isDown || this.input.activePointer.isDown) && this.player.health > 0){
             this.road.speed -= 0.008;
             if(this.road.speed < 0.5){
                 this.road.speed = 0.5;
             }
         }
-        game.boostGroup.forEach(function(pad){
+        this.boostGroup.forEach(function(pad){
             pad.y += this.road.speed;
             if(pad.y - pad.height > game.config.height){
                 pad.destroy();
@@ -684,19 +685,19 @@ export class Play extends Phaser.Scene {
         if(this.player.health <= 0){
             skid(this.player);
         }
-        game.enemies.children.forEach(function(enemy){
+        this.enemies.children.forEach(function(enemy){
             enemy.body.velocity.setTo(0.95 * enemy.body.velocity.x, 0.95 * enemy.body.velocity.y);
             enemy.weapon.fireAngle = Math.floor(Math.random() * 30) - 15 + (this.physics.arcade.angleBetween(enemy, this.player) / (Math.PI/180));
-            this.physics.arcade.collide(enemy.weapon.bullets, game.blockGroup, function(b, blocker){
+            this.physics.arcade.collide(enemy.weapon.bullets, this.blockGroup, function(b, blocker){
                 b.kill();
-                game.time.events.add(100, function(){
+                this.time.events.add(100, function(){
                     blocker.hp -= 25;
                     if(blocker.hp <= 0){
                         blocker.animations.frame = Math.floor(Math.random() * 3) + 2;
                         blocker.currFrame = blocker.animations.frame;
-                        game.blockGroup.remove(blocker);
+                        this.blockGroup.remove(blocker);
                         blocker.body.velocity.setTo(0);
-                        game.destBlockGroup.add(blocker);
+                        this.destBlockGroup.add(blocker);
                     }
                 });
             });
@@ -716,7 +717,7 @@ export class Play extends Phaser.Scene {
                         newVelY = game.config.height - enemy.height;
                     }
                     enemy.body.velocity.setTo(newVelX + enemy.body.velocity.x, newVelY + enemy.body.velocity.y);
-                    game.time.events.add(1000, function(){
+                    this.time.events.add(1000, function(){
                         enemy.finished = true;
                     });
                     enemy.finished = false;
@@ -738,8 +739,8 @@ export class Play extends Phaser.Scene {
                 enemy.fire.pendingDelete = true;
                 enemy.destroy();
             }
-            if(!(game.jumping || game.arc)){
-                this.physics.arcade.collide(enemy.weapon.bullets, this.player, game.death);
+            if(!(this.jumping || this.arc)){
+                this.physics.arcade.collide(enemy.weapon.bullets, this.player, this.death);
             }
             // if(enemy.prevX !== enemy.x){
             //     skid(enemy);
@@ -750,8 +751,8 @@ export class Play extends Phaser.Scene {
             enemy.prevY = enemy.y;
         });
         this.road.tilePosition.y += this.road.speed /  (game.config.height/600);
-        if(!(game.jumping || game.arc)){
-            this.physics.arcade.overlap(game.blockGroup, this.player.weapon.bullets, function(blocker, b){
+        if(!(this.jumping || this.arc)){
+            this.physics.arcade.overlap(this.blockGroup, this.player.weapon.bullets, function(blocker, b){
                 if(b.hp){
                     b.hp -= 1;
                     if(b.hp <= 0){
@@ -762,19 +763,19 @@ export class Play extends Phaser.Scene {
                 } else {
                     b.kill();
                 }
-                blocker.body.velocity.x = b.body.velocity.x * (game.friction * 12);
-                blocker.body.velocity.y = b.body.velocity.y * (game.friction * 12);
+                blocker.body.velocity.x = b.body.velocity.x * (this.friction * 12);
+                blocker.body.velocity.y = b.body.velocity.y * (this.friction * 12);
                 blocker.animations.frame = 1;
-                game.time.events.add(100, function(){
+                this.time.events.add(100, function(){
                     blocker.animations.frame = 0;
                     blocker.hp -= 25;
                     if(blocker.hp <= 0){
                         var rand = Math.floor(Math.random() * 3) + 2;
                         blocker.animations.frame = rand;
                         blocker.currFrame = blocker.animations.frame;
-                        game.blockGroup.remove(blocker);
+                        this.blockGroup.remove(blocker);
                         blocker.body.velocity.setTo(0);
-                        game.destBlockGroup.add(blocker);
+                        this.destBlockGroup.add(blocker);
                     }
                 });
                 setTimeout(function(){
@@ -784,15 +785,15 @@ export class Play extends Phaser.Scene {
                 this.psd = true;
                 this.physics.arcade.isPaused = true;
             });
-            this.physics.arcade.collide(game.blockGroup, this.player, game.death);
-            this.physics.arcade.collide(game.enemies, this.player, game.death);
-            this.physics.arcade.overlap(game.expGroup, this.player, function(p, e){
+            this.physics.arcade.collide(this.blockGroup, this.player, this.death);
+            this.physics.arcade.collide(this.enemies, this.player, this.death);
+            this.physics.arcade.overlap(this.expGroup, this.player, function(p, e){
                 if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== this.player){
                     p.body.velocity.x += 500/(p.x - e.x);
                     p.body.velocity.y += 500/(p.y - e.y);
                 }
             });
-            this.physics.arcade.overlap(game.blockGroup, game.expGroup, function(b, e){
+            this.physics.arcade.overlap(this.blockGroup, this.expGroup, function(b, e){
                 if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== b){ //For truck
                     if(e.car === this.player){
                         b.body.velocity.x += 10000/(b.x - e.x);
@@ -803,16 +804,16 @@ export class Play extends Phaser.Scene {
                     }
                 }
             });
-            this.physics.arcade.overlap(this.player, game.boostGroup, function(){
+            this.physics.arcade.overlap(this.player, this.boostGroup, function(){
                 if(this.player.health > 0){
-                    game.jumping = true;
+                    this.jumping = true;
                     this.road.speed += 0.5;
                     //SOUND
                     // this.carSound.play();
                 }
             });
         }
-        this.physics.arcade.overlap(this.player.weapon.bullets, game.enemies, function(b, enemy){
+        this.physics.arcade.overlap(this.player.weapon.bullets, this.enemies, function(b, enemy){
             if(b.hp){
                 b.hp -=1;
                 if(b.hp <= 0){
@@ -823,8 +824,8 @@ export class Play extends Phaser.Scene {
             } else {
                 b.kill();
             }
-            enemy.body.velocity.x += b.body.velocity.x * game.friction * 10;
-            enemy.body.velocity.y += b.body.velocity.y * game.friction * 10;
+            enemy.body.velocity.x += b.body.velocity.x * this.friction * 10;
+            enemy.body.velocity.y += b.body.velocity.y * this.friction * 10;
             enemy.rotation += (b.rotation/20);
             enemy.health -= 50;
             enemy.topS.frame = 3;
@@ -837,17 +838,17 @@ export class Play extends Phaser.Scene {
                 enemy.isMoving = false;
                 enemy.fire.pendingDelete = true;
                 enemy.isDown = true;
-                game.time.events.add(50, function(){
+                this.time.events.add(50, function(){
                     enemy.topS.frame = 2;
                     enemy.playerFire = false;
                 });
             } else if(!enemy.isDown) {
-                game.time.events.add(50, function(){
+                this.time.events.add(50, function(){
                     enemy.topS.frame = 1;
                     enemy.playerFire = false;
                 });
             } else if(enemy.isDown){
-                game.time.events.add(50, function(){
+                this.time.events.add(50, function(){
                     enemy.topS.frame = 2;
                     enemy.playerFire = false;
                 });
@@ -859,7 +860,7 @@ export class Play extends Phaser.Scene {
             this.psd = true;
             this.physics.arcade.isPaused = true;
         });
-        this.physics.arcade.overlap(game.enemies, game.expGroup, function(en, e){
+        this.physics.arcade.overlap(this.enemies, this.expGroup, function(en, e){
             if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== en){
                 if(e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8){
                     if(e.car === this.player){
@@ -872,7 +873,7 @@ export class Play extends Phaser.Scene {
                 }
             }
         })
-        this.physics.arcade.overlap(game.enemies, game.enemies, function(e1, e2){
+        this.physics.arcade.overlap(this.enemies, this.enemies, function(e1, e2){
             if(!e1.isDown){
                 e1.vel = e1.body.velocity;
             }
@@ -920,12 +921,12 @@ export class Play extends Phaser.Scene {
                 e2.fire.pendingDelete = true;
             }
         });
-        this.physics.arcade.overlap(game.enemies, game.blockGroup, function(e, b){
+        this.physics.arcade.overlap(this.enemies, this.blockGroup, function(e, b){
             e.isRoading = true;
             e.finished = false;
             e.tween.stop();
-            b.body.velocity.x += e.body.velocity.x * this.road.speed * game.friction;
-            b.body.velocity.y += e.body.velocity.y * this.road.speed * game.friction;
+            b.body.velocity.x += e.body.velocity.x * this.road.speed * this.friction;
+            b.body.velocity.y += e.body.velocity.y * this.road.speed * this.friction;
             e.isMoving = false;
             if(!e.isDown){
                 e.die();
@@ -938,78 +939,78 @@ export class Play extends Phaser.Scene {
                 e.fire.pendingDelete = true;
             }
         });
-        if(game.jumping){
+        if(this.jumping){
             this.player.gun.alpha = 0;
             this.player.removeChild(this.player.gun);
             this.player.addChild(this.player.gun);
             this.player.gun.canShoot = false;
-            if(this.player.scale.x > 1.6 * game.config.width/3000 && game.midair === false){
-                game.midair = true;
+            if(this.player.scale.x > 1.6 * game.config.width/3000 && this.midair === false){
+                this.midair = true;
                 setTimeout(function(){
-                    game.arc = true;
-                    game.jumping = false;
-                    game.midair = false;
+                    this.arc = true;
+                    this.jumping = false;
+                    this.midair = false;
                 }, 500);
             } else {
                 // this.constant.volume += 0.01;
                 //SOUND
-                game.midair = false;
+                this.midair = false;
                 this.player.scale.x += 0.02 * (game.config.width/3000);
                 this.player.scale.y += 0.02 * (game.config.width/3000);
-                game.shadow.x += 2;
+                this.shadow.x += 2;
                 this.player.x -= 2;
                 this.player.t.to({angle: 0}, 400, "Linear");
             }
-        } else if (game.arc){
+        } else if (this.arc){
             this.player.scale.x -= 0.02 * (game.config.width/3000);
             this.player.scale.y -= 0.02 * (game.config.width/3000);
-            game.shadow.x -= 2;
+            this.shadow.x -= 2;
             this.player.x += 2;
             // this.constant.volume -= 0.01;
             //SOUND
             if(this.player.scale.x <= game.config.width/3000){
-                game.arc = false;
+                this.arc = false;
                 this.player.gun.alpha = 1;
                 skidTimeInt(50, this.player);
                 this.cameras.main.shake(500, 0.02);
                 this.player.smoke.on = true;
                 this.player.setScale(game.config.width/3000);
-                game.shadow.x = 10;
-                game.shadow.y = 12;
-                game.canInput = true;
+                this.shadow.x = 10;
+                this.shadow.y = 12;
+                this.canInput = true;
                 this.player.gun.canShoot = true;
                 this.player.removeChild(this.player.gun);
                 this.player.addChildAt(this.player.gun, 0);
             }
         }
-        game.skG.forEach(function(i){
+        this.skG.forEach(function(i){
             i.y += this.road.speed;
             if(i.y > game.config.height + i.height){
                 i.destroy();
             }
         });
-        game.destBlockGroup.forEach(function(i){
+        this.destBlockGroup.forEach(function(i){
             i.y += this.road.speed;
             i.animations.frame = i.currFrame;
             if(i.y > game.config.height + i.height){
                 i.destroy();
             }
         });
-        if((this.fire.isDown || this.altFire.isDown || game.input.activePointer.isDown) && !(game.arc || game.jumping) && this.player.health > 0){
+        if((this.fire.isDown || this.altFire.isDown || this.input.activePointer.isDown) && !(this.arc || this.jumping) && this.player.health > 0){
             this.player.weapon.fireAngle = this.player.angle - 90;
             this.player.weapon.fire();
         }
-        game.blockGroup.forEach(function(i){
+        this.blockGroup.forEach(function(i){
             i.y += this.road.speed;
             i.body.velocity.setTo(0.95 * i.body.velocity.x, 0.95 * i.body.velocity.y);
-            game.enemies.forEach(function(e){
-                this.physics.arcade.overlap(game.expGroup, e.weapon.bullets, function(ex, b){
+            this.enemies.forEach(function(e){
+                this.physics.arcade.overlap(this.expGroup, e.weapon.bullets, function(ex, b){
                     if((ex.anim.frame === 6 || ex.anim.frame === 7 || ex.anim.frame === 8)){
                         b.body.velocity.x += 90/(b.x - ex.x);
                         b.body.velocity.y += 90/(b.y - ex.y);
                     }
                 });
-                game.avoidObstacles(i, e);
+                this.avoidObstacles(i, e);
                 if(e.y > game.config.height + e.height){
                     e.destroy();
                 }
