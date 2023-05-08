@@ -33,9 +33,6 @@ export class Play extends Phaser.Scene {
     }
 
     create() {
-        // this.physics.world.setBounds(game.config.width, game.config.height);
-        
-
         this.plugins.installScenePlugin(
             'WeaponPlugin',
             WeaponPlugin.WeaponPlugin,
@@ -201,20 +198,21 @@ export class Play extends Phaser.Scene {
         // this.constant.play();
         this.constant = soundManager.play("carSound", true);
         this.constant.playbackRate.value = this.road.speed * 0.001;
+
         this.player.weapon = this.add.weapon(10, 'bullet');
         this.player.weapon.bulletSpeed = 500;
         this.player.weapon.fireRate = 600;
-        this.player.weapon.trackSprite(gun, 0, -gun.height);
         this.player.weapon.on("fire", function(bullet){
             var sound = soundManager.play('fire');
             sound.playbackRate.value = Math.random() * (3 - 2) + 2;
             this.cameras.main.shake(100, 0.01);
             bullet.setScale(game.config.width/1200);
         }, this);
+        
         this.player.health = 100;
         this.player.maxHealth = 100;
-        this.fire = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CONTROL);
-        this.altFire = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACEBAR);
+        this.fire = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
+        this.altFire = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
         this.player.tween = this.add.tween({
             targets: this.player,
@@ -613,6 +611,16 @@ export class Play extends Phaser.Scene {
             }
         } else {
             this.player.smoke.frequency = 15;
+        }
+    }
+
+    fireUpdate() {
+        if((this.fire.isDown || this.altFire.isDown || this.input.activePointer.isDown) && !(this.arc || this.jumping) && this.player.health > 0){
+            this.player.weapon.fireAngle = this.player.angle - 90;
+
+            let gunPos = this.player.localTransform.transformPoint(this.player.gun.x, this.player.gun.y - 10 * this.player.gun.height);
+            this.player.weapon.fireFrom.setPosition(gunPos.x, gunPos.y);
+            this.player.weapon.fire();
         }
     }
 
@@ -1063,10 +1071,9 @@ export class Play extends Phaser.Scene {
                     i.destroy();
                 }
             }, this);
-            if((this.fire.isDown || this.altFire.isDown || this.input.activePointer.isDown) && !(this.arc || this.jumping) && this.player.health > 0){
-                this.player.weapon.fireAngle = this.player.angle - 90;
-                this.player.weapon.fire();
-            }
+
+            this.fireUpdate();
+
             this.blockGroup.getChildren().forEach(function(i){
                 i.y += this.road.speed;
                 i.body.velocity.setTo(0.95 * i.body.velocity.x, 0.95 * i.body.velocity.y);
