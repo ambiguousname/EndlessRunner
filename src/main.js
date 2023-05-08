@@ -5,6 +5,8 @@ Started: 10:54 at 5/8
 
 Hey, wouldn't you know, I made an endless runner in Phaser CE about 4 years ago. I'm gonna upgrade it to Phaser 3 and make a bunch of improvements, but all of the art is mine! Time to add some SFX and Music that doesn't suck though. 
 
+Phaser 3 Weapon Plugin: https://github.com/16patsle/phaser3-weapon-plugin
+
 */
 
 window.game = new Phaser.Game({
@@ -14,11 +16,9 @@ window.game = new Phaser.Game({
 	parent: "game",
 	scene: [Scenes.Play, Scenes.Start],
 	physics: {
-		default: 'matter',
-		enableSleeping: true,
-        matter: {
+		default: 'arcade',
+        arcade: {
             debug: true,
-            debugBodyColor: 0xffffff
         }
 	},
 });
