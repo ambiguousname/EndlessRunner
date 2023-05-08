@@ -47,10 +47,13 @@ export class Play extends Phaser.Scene {
         this.time.advancedTiming = true;
         this.keys = this.input.keyboard.createCursorKeys();
         game.config.backgroundColor.setFromRGB(Phaser.Display.Color.HexStringToColor("#A8651E"));
+
         this.road = this.add.tileSprite(game.config.width/2, game.config.height/2, 514, 788, "road");
         this.road.setOrigin(0.5);
         this.road.speed = 1;
         this.road.setScale(0.00125 * game.config.width, game.config.height/600);
+        this.road.depth = -5;
+
         this.speedDisplay = this.add.text(game.config.width - ((game.config.width/800 * 25) * 4), game.config.height - ((game.config.width/800 * 25) * 2), "0 mph", {
             fill: "#ffffff",
             font: (game.config.width/800 * 25) + "px Arial"
@@ -58,6 +61,7 @@ export class Play extends Phaser.Scene {
         //Skid marks:
         this.destBlockGroup = this.add.group();
         this.skG = this.add.group();
+
         this.boostGroup = this.add.group();
         this.boostGroup.enableBody = true;
         this.boostGroup.physicsBodyType = Phaser.physics;
@@ -160,8 +164,8 @@ export class Play extends Phaser.Scene {
         this.expGroup = this.add.group();
         this.expGroup.enableBody = true;
 
-        this.wheelLeft = this.add.sprite(-this.player.width/2, this.player.height/2, 'f');
-        this.wheelRight = this.add.sprite(this.player.width/2, this.player.height/2, 'f');
+        this.wheelLeft = this.add.sprite(-this.player.width/2 + this.player.width/8, this.player.height/2 - this.player.height/8, 'f');
+        this.wheelRight = this.add.sprite(this.player.width/2 - this.player.width/8, this.player.height/2 - this.player.height/8, 'f');
         this.wheelLeft.alpha = 0;
         this.wheelRight.alpha = 0;
         this.player.add(this.wheelLeft);
@@ -209,7 +213,7 @@ export class Play extends Phaser.Scene {
 
         this.player.tween = this.add.tween({
             targets: this.player,
-            y: game.config.height - 100,
+            y: game.config.height - 50,
             duration: 1000 
         });
         this.player.tween.on("complete", function(){
@@ -217,7 +221,6 @@ export class Play extends Phaser.Scene {
             this.player.body.setCollideWorldBounds(true);
             this.player.tween = null;
         }, this);
-        // this.player.tween.play();
     }
 
     startGame() {
@@ -559,31 +562,40 @@ export class Play extends Phaser.Scene {
     skid(sprite) {
         if(!(this.jumping || this.arc) && this.player.health > 0){
             //TODO: Get wheel left and wheelRight sprites, track those positions
-            var skLeft = this.add.sprite(this.wheelLeft.x, this.wheelLeft.y, 'skid');
-            skLeft.rotation = this.player.rotation;
+            let wheelLeftPoint = this.player.localTransform.transformPoint(this.wheelLeft.x, this.wheelLeft.y);
+            var skLeft = this.add.sprite(wheelLeftPoint.x, wheelLeftPoint.y, 'skid');
             skLeft.tint = 0x000000;
-            var skRight = this.add.sprite(this.wheelRight.x, this.wheelRight.y, 'skid');
+            
+            let wheelRightPoint = this.player.localTransform.transformPoint(this.wheelRight.x, this.wheelRight.y);
+            var skRight = this.add.sprite(wheelRightPoint.x, wheelRightPoint.y, 'skid');
             skRight.setOrigin(0.5);
             skRight.tint = 0x000000;
 
             skRight.setScale((0.4) * 0.00125 * game.config.width, this.road.speed/5);
             skLeft.setScale(0.4 * 0.00125 * game.config.width, this.road.speed/5);
 
-            skLeft.rotation = sprite.rotation;
-            skRight.rotation = sprite.rotation;
+            skLeft.depth = -1;
+            skRight.depth = -1;
+
             this.skG.add(skLeft);
             this.skG.add(skRight);
         }
     }
 
+    #targetAngle = 0;
+    playerRotate() {
+        this.player.angle = Phaser.Math.Linear(this.player.angle, this.#targetAngle, 0.01);
+    }
+
     update () {
+        this.playerRotate();
+
         this.constant.playbackRate.value = this.road.speed;
         if(this.shadowT){
             this.shadowT.x = this.shadowT.truck.x + 5;
             this.shadowT.y = this.shadowT.truck.y + 5;
         }
         this.player.body.setVelocity(0.9 * this.player.body.velocity.x, 0.9 * this.player.body.velocity.y);
-        this.player.t = this.add.tween({targets: this.player});
         function skidTimeInt(time, sprite){
             var loop = this.time.addEvent({delay: 1, loop: true, callback: function(){
                 loop.cT += 1;
@@ -640,16 +652,16 @@ export class Play extends Phaser.Scene {
             this.player.body.velocity.x -= (20 * game.config.height/600);
             this.skid(this.player);
             if(!(this.jumping || this.arc)){
-                this.player.t.updateTo({angle: -30}, 400, "Linear");
+                this.#targetAngle = -30;
             }
         } else if((this.keys.right.isDown) && this.canInput){
             this.player.body.velocity.x += (20 * game.config.height/600);
             this.skid(this.player);
             if(!(this.jumping || this.arc)){
-                this.player.t.updateTo({angle: 30}, 400, "Linear");
+                this.#targetAngle = 30;
             }
         } else if(!this.input.activePointer.isDown && this.canInput) {
-            this.player.t.updateTo({angle: 0}, 400, "Linear");
+            this.#targetAngle = 0;
         }
         if(this.canInput){
             if(this.input.activePointer.isDown){
@@ -657,15 +669,15 @@ export class Play extends Phaser.Scene {
                 if(this.player.x < this.input.activePointer.x - this.player.width/4){
                     this.player.body.velocity.x += (20 * game.config.height/600);
                     if(!(this.jumping || this.arc)){
-                        this.player.t.updateTo({angle: 30}, 400, "Linear");
+                        this.#targetAngle = 30;
                     }
                 } else if (this.player.x > this.input.activePointer.x + this.player.width/4){
                     this.player.body.velocity.x -= (20 * game.config.height/600);
                     if(!(this.jumping || this.arc)){
-                        this.player.t.updateTo({angle: -30}, 400, "Linear");
+                        this.#targetAngle = -30;
                     }
                 } else {
-                    this.player.t.updateTo({angle: 0}, 400, "Linear");
+                    this.#targetAngle = 0;
                 }
                 if(this.player.y < this.input.activePointer.y - this.player.height/4){
                     this.player.body.velocity.y += (20 * game.config.height/600);
@@ -771,7 +783,7 @@ export class Play extends Phaser.Scene {
                 enemy.prevX = enemy.x;
                 enemy.prevY = enemy.y;
             });
-            this.road.tilePositionY += this.road.speed /  (game.config.height/600);
+            this.road.tilePositionY -= this.road.speed /  (game.config.height/600);
             if(!(this.jumping || this.arc)){
                 this.physics.overlap(this.blockGroup, this.player.weapon.bullets, function(blocker, b){
                     if(b.hp){
@@ -981,7 +993,7 @@ export class Play extends Phaser.Scene {
                     this.player.scale.y += 0.02 * (game.config.width/3000);
                     this.shadow.x += 2;
                     this.player.x -= 2;
-                    this.player.t.updateTo({angle: 0}, 400, "Linear");
+                    this.#targetAngle = 0;
                 }
             } else if (this.arc){
                 this.player.scale.x -= 0.02 * (game.config.width/3000);
@@ -1044,9 +1056,6 @@ export class Play extends Phaser.Scene {
             this.road.prevSpeed = this.road.speed;
         }
 
-        if(!this.player.tween){
-            this.player.t.play();
-        }
         this.player.smoke.setPosition(this.player.x, this.player.y + this.player.height/2 - 20);
         //Counteract player movement:
         this.player.smoke.forEachAlive(function(part){
