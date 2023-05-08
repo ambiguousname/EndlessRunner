@@ -46,7 +46,7 @@ export class Play extends Phaser.Scene {
         //TODO: CHANGE
         this.time.advancedTiming = true;
         this.keys = this.input.keyboard.createCursorKeys();
-        game.config.backgroundColor = "#A8651E";
+        game.config.backgroundColor.setFromRGB(Phaser.Display.Color.HexStringToColor("#A8651E"));
         this.road = this.add.tileSprite(game.config.width/2, game.config.height/2, 514, 788, "road");
         this.road.setOrigin(0.5);
         this.road.speed = 1;
@@ -131,11 +131,13 @@ export class Play extends Phaser.Scene {
     }
 
     createPlayer() {
-        let sprite = this.physics.add.sprite(game.config.width/2, game.config.height + 100, 'carSheet');
-        sprite.setOrigin(0.5);
-        sprite.setScale(game.config.width/3000);
-        this.player = this.add.container(sprite);
-        this.player.sprite = sprite;
+        this.player = this.physics.add.sprite(game.config.width/2, game.config.height + 100, 'carSheet');
+        this.player.setOrigin(0.5);
+        this.player.setScale(game.config.width/3000);
+        // this.player = this.add.container(sprite);
+        // this.player.sprite = sprite;
+
+        window.p = this.player;
 
         var smoke = this.add.particles("smoke", {
             maxParticles: 1000,
@@ -152,12 +154,12 @@ export class Play extends Phaser.Scene {
         this.shadow.alpha = 0.8;
         this.shadow.setOrigin(0.5);
         this.shadow.setScale(3.7);
-        this.player.add(this.shadow);
+        // this.player.add(this.shadow);
 
 
         this.player.topS = this.add.sprite(0, 0, 'carSheet');
         this.player.topS.setOrigin(0.5);
-        this.player.add(this.player.topS);
+        // this.player.add(this.player.topS);
 
         this.expGroup = this.add.group();
         this.expGroup.enableBody = true;
@@ -166,14 +168,14 @@ export class Play extends Phaser.Scene {
         this.wheelRight = this.add.sprite(this.player.width/2, this.player.height/2, 'f');
         this.wheelLeft.alpha = 0;
         this.wheelRight.alpha = 0;
-        this.player.add(this.wheelLeft);
-        this.player.add(this.wheelRight);
+        // this.player.add(this.wheelLeft);
+        // this.player.add(this.wheelRight);
 
         var gun = this.add.sprite(0, -this.player.height * 3/4, 'gun');
         gun.setOrigin(0.5);
         gun.setScale(3);
         gun.canShoot = true;
-        this.player.add(gun);
+        // this.player.add(gun);
         this.player.gun = gun;
 
         this.friction = 0.05;
@@ -206,12 +208,13 @@ export class Play extends Phaser.Scene {
         this.altFire = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACEBAR);
 
         this.player.tween = this.add.tween({
-            targets: this.player
+            targets: this.player,
+            y: game.config.height - 50,
+            duration: 1000 
         });
-        this.player.tween.updateTo({y: game.config.height - 50}, 1000);
         this.player.tween.on("complete", function(){
             this.canInput = true;
-            this.player.sprite.body.collideWorldBounds = true;
+            this.player.body.collideWorldBounds = true;
             this.player.tween = null;
         }, this);
         this.player.tween.play();
@@ -225,7 +228,7 @@ export class Play extends Phaser.Scene {
                 this.time.addEvent({delay: 100, callback: function(){
                     if(!(this.arc || this.jumping)){
                         this.player.smoke.on = true;
-                        this.player.smoke.gravity = this.player.sprite.body.velocity.y;
+                        this.player.smoke.gravity = this.player.body.velocity.y;
                     }
                 }});
                 if(!(this.arc || this.jumping)){
@@ -236,11 +239,11 @@ export class Play extends Phaser.Scene {
         this.keys.down.onUp(function(){
             if(this.timeDown > 100 && this.timeDown < 500){
                 this.road.speed += this.timeDown/100;
-                this.player.sprite.body.velocity.y -= this.timeDown * 10;
+                this.player.body.velocity.y -= this.timeDown * 10;
             }
             if(this.timeDown > 500){
                 this.road.speed += 5;
-                this.player.sprite.body.velocity.y -= 5000;
+                this.player.body.velocity.y -= 5000;
             }
         });
         //For jumping:
@@ -495,8 +498,8 @@ export class Play extends Phaser.Scene {
                 game.played = true;
                 this.canInput = false;
                 this.player.topS.frame = 2; //Show damage on the car
-                this.player.sprite.body.velocity.y -= 10 + Math.floor(this.road.speed * 10) * 400; //Road stops, launch player
-                this.player.sprite.body.collideWorldBounds = false;
+                this.player.body.velocity.y -= 10 + Math.floor(this.road.speed * 10) * 400; //Road stops, launch player
+                this.player.body.collideWorldBounds = false;
                 this.enemies.getChildren().forEach(function(child){
                     if(!child.isDown){
                         child.tween.stop();
@@ -581,7 +584,7 @@ export class Play extends Phaser.Scene {
             this.shadowT.x = this.shadowT.truck.x + 5;
             this.shadowT.y = this.shadowT.truck.y + 5;
         }
-        this.player.sprite.body.velocity.setTo(0.9 * this.player.sprite.body.velocity.x, 0.9 * this.player.sprite.body.velocity.y);
+        this.player.body.velocity.setTo(0.9 * this.player.body.velocity.x, 0.9 * this.player.body.velocity.y);
         this.player.t = this.add.tween({targets: this.player});
         function skidTimeInt(time, sprite){
             var loop = this.time.addEvent({delay: 1, loop: true, callback: function(){
@@ -604,7 +607,7 @@ export class Play extends Phaser.Scene {
                     this.road.speed = 0.5;
                 }
             } else if(this.keys.up.isDown){
-                this.player.sprite.body.velocity.y -= (20 * game.config.height/600);
+                this.player.body.velocity.y -= (20 * game.config.height/600);
                 //SOUND
                 // if(!this.carSound.isPlaying && !this.carSound.played){
                 //     this.carSound.volume = 0.5 * this.road.speed;
@@ -618,7 +621,7 @@ export class Play extends Phaser.Scene {
                 // }
                 this.player.smoke.on = false;
             } else if (this.keys.down.isDown){
-                this.player.sprite.body.velocity.y += (20 * game.config.height/600);
+                this.player.body.velocity.y += (20 * game.config.height/600);
                 this.skid(this.player);
                 //SOUND
                 // if(!this.brakeSound.isPlaying && !this.brakeSound.played){
@@ -636,13 +639,13 @@ export class Play extends Phaser.Scene {
             }
         }
         if((this.keys.left.isDown) && this.canInput){
-            this.player.sprite.body.velocity.x -= (20 * game.config.height/600);
+            this.player.body.velocity.x -= (20 * game.config.height/600);
             this.skid(this.player);
             if(!(this.jumping || this.arc)){
                 this.player.t.updateTo({angle: -30}, 400, "Linear");
             }
         } else if((this.keys.right.isDown) && this.canInput){
-            this.player.sprite.body.velocity.x += (20 * game.config.height/600);
+            this.player.body.velocity.x += (20 * game.config.height/600);
             this.skid(this.player);
             if(!(this.jumping || this.arc)){
                 this.player.t.updateTo({angle: 30}, 400, "Linear");
@@ -654,12 +657,12 @@ export class Play extends Phaser.Scene {
             if(this.input.activePointer.isDown){
                 this.skid(this.player);
                 if(this.player.x < this.input.activePointer.x - this.player.width/4){
-                    this.player.sprite.body.velocity.x += (20 * game.config.height/600);
+                    this.player.body.velocity.x += (20 * game.config.height/600);
                     if(!(this.jumping || this.arc)){
                         this.player.t.updateTo({angle: 30}, 400, "Linear");
                     }
                 } else if (this.player.x > this.input.activePointer.x + this.player.width/4){
-                    this.player.sprite.body.velocity.x -= (20 * game.config.height/600);
+                    this.player.body.velocity.x -= (20 * game.config.height/600);
                     if(!(this.jumping || this.arc)){
                         this.player.t.updateTo({angle: -30}, 400, "Linear");
                     }
@@ -667,13 +670,13 @@ export class Play extends Phaser.Scene {
                     this.player.t.updateTo({angle: 0}, 400, "Linear");
                 }
                 if(this.player.y < this.input.activePointer.y - this.player.height/4){
-                    this.player.sprite.body.velocity.y += (20 * game.config.height/600);
+                    this.player.body.velocity.y += (20 * game.config.height/600);
                     if(!(this.arc || this.jumping) && this.player.health > 0){
                         this.player.smoke.on = true;
-                        this.player.smoke.gravity = this.player.sprite.body.velocity.y;
+                        this.player.smoke.gravity = this.player.body.velocity.y;
                     }
                 } else if (this.player.y > this.input.activePointer.y + this.player.height/4){
-                    this.player.sprite.body.velocity.y -= (20 * game.config.height/600);
+                    this.player.body.velocity.y -= (20 * game.config.height/600);
                 } else {
                     this.player.smoke.on = false;
                 }
