@@ -254,6 +254,146 @@ export class Play extends Phaser.Scene {
         }
     }
 
+    createEnemy() {
+        var random = Math.floor(Math.random() * 2);
+        var x = -this.player.width;
+        if(random === 1){
+            x = game.config.width + this.player.width;
+        }
+
+        let enemyCar = this.physics.add.sprite(0, 0, 'mustangishSheet');
+        
+        let enemy = this.add.container(x, Math.floor(Math.random() * game.config.height - (game.config.height - this.player.y) - 50), enemyCar);
+        enemy.sprite = enemyCar;
+        enemy.setSize(enemyCar.width, enemyCar.height);
+        
+        this.physics.world.enable(enemy);
+
+        //TODO: Fix it so when the car rotates when it dies, draw a line from top left of game so we can position shadow.
+        enemy.findNewPosition = function(blocker){ //Where do I go?
+            var newX;
+            if(blocker.x - blocker.width <= 0){ //Either the blocker is on the far right, left, or somewhere in between.
+                newX = game.config.width - this.width; //If on far left, go far right.
+            } else if (blocker.x + blocker.width >= game.config.width){ //If on far right, go far left.
+                newX = this.width;
+            } else {
+                if(this.x < blocker.x){ //If somewhere in between, go either left or right of blocker, whichever is shorter.
+                    newX = this.width;
+                } else {
+                    newX = game.config.width - this.width;
+                }
+            }
+            var newY = this.y + Math.floor(Math.random() * 200); //Keep going backwards to avoid obstacles.
+            if(newY + this.height >= game.config.height){
+                newY = newY - (game.config.height - newY);
+            }
+            return [newX, newY]
+        }
+        enemy.updatePos = function(){ //Determines if the enemy no longer needs to move out of the way
+            var shouldMove = false; //Should I keep moving?
+            var self = this; //Ref to enemy
+            this.blockGroup.forEach(function(b){
+                if(b.x - b.width < self.x + self.width && b.x + b.width > self.x - self.width){
+                    shouldMove = true; //If I'm in the way of any obstacles, I want to keep moving
+                }
+            });
+            if(self.shouldMoveC >= 900){ //Have I continued moving for more than 900 frames? Prevents issues where there are obstacles everywhere, and car can't dodge.
+            //If the car sees no way out, it stops dodging, embraces its destiny with the wall.
+                shouldMove = false; //I want to stop moving
+                self.shouldMoveC = 0; //reset count
+            }
+            if(!shouldMove){ //Do I want to stop moving?
+                self.tween.stop(); //If true, stop moving
+                self.isDodging = false; //I've given up on life
+            } else {
+                self.shouldMoveC += 1;
+            }
+        }
+
+        let shadow = this.add.sprite(4, 2, 'mustangishSheet');
+        shadow.tint = 0x000000;
+        shadow.alpha = 0.8;
+        enemy.add(shadow);
+
+        enemy.sendToBack(shadow);
+        
+        enemy.isMoving = true;
+        enemy.isDodging = false;
+        enemy.tween = this.add.tween({targets: enemy,
+            x:game.config.width/2,
+            y:Math.floor(Math.random() * game.config.height - (game.config.height - this.player.y)) - 20,
+            duration: 5000/this.road.speed
+        });
+        enemy.angle = 0;
+        enemy.prevX = enemy.x;
+        enemy.weapon = this.add.weapon(100, 'enemyBullet');
+        enemy.weapon.bulletSpeed = 200;
+        enemy.weapon.fireRate = 500;
+        enemy.weapon.fireAngle = 90;
+        enemy.weapon.on("fire", function(bullet){
+            bullet.body.allowRotation = true;
+            enemy.body.velocity.x -= bullet.body.velocity.x/5;
+            enemy.body.velocity.y -= bullet.body.velocity.y/5;
+            bullet.setScale(game.config.width/1200);
+            if(enemy.prevX !== enemy.x){
+                bullet.body.velocity.x += (enemy.x - enemy.prevX);
+            }
+            if(enemy.prevY !== enemy.y){
+                bullet.body.velocity.y += (enemy.y - enemy.prevY);
+            }
+        });
+        enemy.finished = false;
+        enemy.tween.on("complete", function(){
+            enemy.finished = true;
+        });
+        enemy.fire = this.time.addEvent({delay: 1000, loop: true, callback: function(){
+            if(this.player.health > 0){
+                enemy.weapon.fire();
+                enemy.weapon.fireFrom.setPosition(enemy, enemy.width/2, enemy.height/2)
+                // this.add.sound('fire', 0.7).play();
+            }
+        }.bind(this)});
+        enemy.health = 100;
+        enemy.setScale(0.00125 * game.config.width);
+        enemy.die = function(){
+            //TODO: Re-enable collision of enemy cars.
+            enemy.e = this.add.sprite(0, 0, 'explosion');
+            enemy.e.setOrigin(0.5);
+            enemy.e.setScale(2 * game.config.width/800);
+            enemy.e.angle = Math.floor(Math.random() * 360);
+            enemy.rotate = (Math.random() * 2) - 1;
+            enemy.e.anim = enemy.e.anims.create({key: 'explode', frames: this.anims.generateFrameNumbers("explosion")});
+            enemy.e.play("explode");
+            var sound = soundManager.play('crash');
+            sound.playbackRate.value = Math.random() * 2;
+            var dec = false;
+            var int = setInterval(function(){
+                if(enemy.e.anim.frame >= 7){
+                    dec = true;
+                }
+                if(!dec){
+                    enemy.e.setScale(enemy.e.scale + 0.01 * game.config.width/800);
+                } else {
+                    enemy.e.setScale(enemy.e.scale - 0.01 * game.config.width/800);
+                }
+                // enemy.angle += enemy.rotate;
+                enemy.e.angle += enemy.rotate;
+                
+            }, 1);
+            enemy.e.on("complete", function(){
+                clearInterval(int);
+                enemy.e.destroy();
+            }, this);
+            enemy.e.anims.play('explode', 12, false);
+            enemy.e.car = enemy;
+            if(!enemy.playerFire){
+                enemy.sprite.setFrame(2);
+            }
+            this.expGroup.add(enemy.e);
+        }.bind(this);
+        this.enemies.add(enemy);
+    }
+
     startGame() {
         this.psd = false;
         this.keys.down.on("down", function(){
@@ -296,141 +436,14 @@ export class Play extends Phaser.Scene {
                 var newPos = enemy.findNewPosition(blocker); //Decide where I want to go
                 enemy.tween.updateTo({x:newPos[0], y:newPos[1]}, 5000/this.road.speed, "Linear"); //Set my new destination
                 enemy.tween.play(); //Go there
-                enemy.tween.onComplete.add(function(){ //Once I'm done, I've stopped dodging.
+                enemy.tween.on("complete", function(){ //Once I'm done, I've stopped dodging.
                     enemy.isDodging = false;
                 });
                 enemy.shouldMoveC = 0; //Set counter for number of frames I've moved.
-                enemy.tween.onUpdateCallback(enemy.updatePos, enemy); //Check if I need to go, change "this" references to enemy object.
+                enemy.tween.on("update", enemy.updatePos, enemy); //Check if I need to go, change "this" references to enemy object.
             }
         }
-        /*this.enemySpawn = this.time.addEvent({delay: 3000, loop: true, callback: function(){
-            var random = Math.floor(Math.random() * 2);
-            var x = -this.player.width;
-            if(random === 1){
-                x = game.config.width + this.player.width;
-            }
-            var enemy = this.physics.add.sprite(x, Math.floor(Math.random() * game.config.height - (game.config.height - this.player.y) - 50), 'mustangishSheet');
-            //TODO: Fix it so when the car rotates when it dies, draw a line from top left of game so we can position shadow.
-            enemy.car = this.add.sprite(4, 2, 'mustangishSheet');
-            enemy.findNewPosition = function(blocker){ //Where do I go?
-                var newX;
-                if(blocker.x - blocker.width <= 0){ //Either the blocker is on the far right, left, or somewhere in between.
-                    newX = game.config.width - this.width; //If on far left, go far right.
-                } else if (blocker.x + blocker.width >= game.config.width){ //If on far right, go far left.
-                    newX = this.width;
-                } else {
-                    if(this.x < blocker.x){ //If somewhere in between, go either left or right of blocker, whichever is shorter.
-                        newX = this.width;
-                    } else {
-                        newX = game.config.width - this.width;
-                    }
-                }
-                var newY = this.y + Math.floor(Math.random() * 200); //Keep going backwards to avoid obstacles.
-                if(newY + this.height >= game.config.height){
-                    newY = newY - (game.config.height - newY);
-                }
-                return [newX, newY]
-            }
-            enemy.updatePos = function(){ //Determines if the enemy no longer needs to move out of the way
-                var shouldMove = false; //Should I keep moving?
-                var self = this; //Ref to enemy
-                this.blockGroup.forEach(function(b){
-                    if(b.x - b.width < self.x + self.width && b.x + b.width > self.x - self.width){
-                        shouldMove = true; //If I'm in the way of any obstacles, I want to keep moving
-                    }
-                });
-                if(self.shouldMoveC >= 900){ //Have I continued moving for more than 900 frames? Prevents issues where there are obstacles everywhere, and car can't dodge.
-                //If the car sees no way out, it stops dodging, embraces its destiny with the wall.
-                    shouldMove = false; //I want to stop moving
-                    self.shouldMoveC = 0; //reset count
-                }
-                if(!shouldMove){ //Do I want to stop moving?
-                    self.tween.stop(); //If true, stop moving
-                    self.isDodging = false; //I've given up on life
-                } else {
-                    self.shouldMoveC += 1;
-                }
-            }
-            enemy.car.tint = 0x000000;
-            enemy.car.alpha = 0.8;
-            enemy.topS = this.add.sprite(0, 0, 'mustangishSheet');
-            enemy.isMoving = true;
-            enemy.isDodging = false;
-            enemy.addChild(enemy.car);
-            enemy.addChild(enemy.topS);
-            enemy.tween = this.add.tween({targets: enemy});
-            enemy.angle = 0;
-            enemy.tween.updateTo({x:game.config.width/2, y:Math.floor(Math.random() * game.config.height - (game.config.height - this.player.y)) - 20}, 5000/this.road.speed, "Linear");
-            enemy.prevX = enemy.x;
-            enemy.tween.play();
-            enemy.weapon = this.add.weapon(100, 'enemyBullet');
-            enemy.weapon.bulletSpeed = 200;
-            enemy.weapon.fireRate = 500;
-            enemy.weapon.fireAngle = 90;
-            enemy.weapon.on("fire", function(bullet){
-                bullet.body.allowRotation = true;
-                enemy.body.velocity.x -= bullet.body.velocity.x/5;
-                enemy.body.velocity.y -= bullet.body.velocity.y/5;
-                bullet.setScale(game.config.width/1200);
-                if(enemy.prevX !== enemy.x){
-                    bullet.body.velocity.x += (enemy.x - enemy.prevX);
-                }
-                if(enemy.prevY !== enemy.y){
-                    bullet.body.velocity.y += (enemy.y - enemy.prevY);
-                }
-            });
-            enemy.finished = false;
-            enemy.weapon.trackSprite(enemy.car, enemy.car.width/2, enemy.car.height/2);
-            enemy.tween.onComplete.add(function(){
-                enemy.finished = true;
-            });
-            enemy.fire = this.time.addEvent({delay: 1000, loop: true, callback: function(){
-                if(this.player.health > 0){
-                    enemy.weapon.fire();
-                    this.add.sound('fire', 0.7).play();
-                }
-            }});
-            enemy.health = 100;
-            enemy.setScale(0.00125 * game.config.width);
-            enemy.die = function(){
-                //TODO: Re-enable collision of enemy cars.
-                enemy.e = this.add.sprite(0, 0, 'explosion');
-                enemy.e.setOrigin(0.5);
-                enemy.e.setScale(2 * game.config.width/800);
-                enemy.e.angle = Math.floor(Math.random() * 360);
-                enemy.rotate = (Math.random() * 2) - 1;
-                enemy.e.anim = enemy.e.anims.add('explode');
-                var sound = soundManager.play('crash');
-                sound.playbackRate.value = Math.random() * 2;
-                var dec = false;
-                var int = setInterval(function(){
-                    if(enemy.e.anim.frame >= 7){
-                        dec = true;
-                    }
-                    if(!dec){
-                        enemy.e.scale.x += 0.01 * game.config.width/800;
-                        enemy.e.scale.y += 0.01 * game.config.width/800;
-                    } else {
-                        enemy.e.scale.x -= 0.01 * game.config.width/800;
-                        enemy.e.scale.y -= 0.01 * game.config.width/800;
-                    }
-                    // enemy.angle += enemy.rotate;
-                    enemy.e.angle += enemy.rotate;
-                    
-                }, 1);
-                enemy.e.anim.onComplete.add(function(){
-                    clearInterval(int);
-                    enemy.e.destroy();
-                }, this);
-                enemy.e.anims.play('explode', 12, false);
-                enemy.e.car = enemy;
-                if(!enemy.playerFire){
-                    enemy.topS.frame = 2;
-                }
-                this.expGroup.add(enemy.e);
-            }
-            this.enemies.add(enemy);
-        }.bind(this)});*/
+        this.enemySpawn = this.time.addEvent({delay: 3000, loop: true, callback: this.createEnemy.bind(this)});
         var randomTime = Math.floor(Math.random() * (3000 -1000 - (this.road.speed * 100)) + 1000);
         if(randomTime < 1000){
             randomTime = 1000 + Math.floor(Math.random() * 1000) - 500;
@@ -488,7 +501,7 @@ export class Play extends Phaser.Scene {
 
             button.setInteractive({useHandCursor: true});
             button.on("pointerdown", function(){
-                this.scene.start('play');
+                this.scene.start('Play');
             }, this);
 
             var text = this.add.text(game.config.width/2, game.config.height + 50, "Try it again", {
@@ -522,7 +535,7 @@ export class Play extends Phaser.Scene {
                         child.finished = false;
                         child.body.velocity.y -= this.road.speed * 400; //Launch enemies
                     }
-                });
+                }, this);
                 if(!this.player.hit){
                     var exp = this.add.sprite(-100, -100, 'explosion'); //Generate explosion
                     exp.setOrigin(0.5);
@@ -543,13 +556,12 @@ export class Play extends Phaser.Scene {
                     exp.on("animationcomplete", function(){ //Remove explosion on completion of animation
                         clearInterval(int);
                         exp.destroy();
-                        /*
-                        // this.enemySpawn.loop = false;
-                        // this.spawnPad.loop = false;
+                        this.enemySpawn.loop = false;
+                        this.spawnPad.loop = false;
                         this.spawnPad.pendingDelete = true;
                         this.enemySpawn.pendingDelete = true;
                         this.canInput = false;
-                        this.player.smoke.emitting = false;*/
+                        this.player.smoke.emitting = false;
                     }, this);
                     this.player.hit = true;
                     exp.car = this.player; //Set Explosion to track player car
@@ -561,7 +573,7 @@ export class Play extends Phaser.Scene {
                             bull.body.velocity.y -= this.road.speed * 200; //Speed up bullets
                             bull.done = true;
                         }
-                    });
+                    }, this);
                 }, this);
                 this.road.speed = 0; //Stop road
             }
@@ -766,7 +778,7 @@ export class Play extends Phaser.Scene {
             }
             this.enemies.getChildren().forEach(function(enemy){
                 enemy.body.velocity.setTo(0.95 * enemy.body.velocity.x, 0.95 * enemy.body.velocity.y);
-                enemy.weapon.fireAngle = Math.floor(Math.random() * 30) - 15 + (this.physics.angleBetween(enemy, this.player) / (Math.PI/180));
+                enemy.weapon.fireAngle = Math.floor(Math.random() * 30) - 15 + (Phaser.Math.Angle.BetweenPoints(enemy, this.player) / (Math.PI/180));
                 this.physics.collide(enemy.weapon.bullets, this.blockGroup, function(b, blocker){
                     b.kill();
                     this.time.addEvent({delay: 100, function(){
@@ -779,7 +791,7 @@ export class Play extends Phaser.Scene {
                             this.destBlockGroup.add(blocker);
                         }
                     }});
-                });
+                }.bind(this));
                 if(enemy.isMoving){
                     var enemyTween = this.add.tween({targets: enemy});
                     if(enemy.finished && !enemy.isDodging){
@@ -814,7 +826,6 @@ export class Play extends Phaser.Scene {
                     enemy.y += this.road.speed;
                 }
                 if(enemy.y > game.config.height){
-                    enemy.car.destroy();
                     enemy.fire.pendingDelete = true;
                     enemy.destroy();
                 }
@@ -828,7 +839,7 @@ export class Play extends Phaser.Scene {
                 // }
                 enemy.prevX = enemy.x;
                 enemy.prevY = enemy.y;
-            });
+            }, this);
             this.road.tilePositionY -= this.road.speed /  (game.config.height/600);
             if(!(this.jumping || this.arc)){
                 this.physics.overlap(this.blockGroup, this.player.weapon.bullets, function(blocker, b){
@@ -871,7 +882,7 @@ export class Play extends Phaser.Scene {
                         p.body.velocity.x += 500/(p.x - e.x);
                         p.body.velocity.y += 500/(p.y - e.y);
                     }
-                });
+                }.bind(this));
                 this.physics.overlap(this.blockGroup, this.expGroup, function(b, e){
                     if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== b){ //For truck
                         if(e.car === this.player){
@@ -882,7 +893,7 @@ export class Play extends Phaser.Scene {
                             b.body.velocity.y += 500/(b.y - e.y);
                         }
                     }
-                });
+                }.bind(this));
                 this.physics.overlap(this.player, this.boostGroup, function(){
                     if(this.player.health > 0){
                         this.jumping = true;
@@ -890,7 +901,7 @@ export class Play extends Phaser.Scene {
                         //SOUND
                         // this.carSound.play();
                     }
-                });
+                }.bind(this));
             }
             this.physics.overlap(this.player.weapon.bullets, this.enemies, function(b, enemy){
                 if(b.hp){
@@ -907,7 +918,7 @@ export class Play extends Phaser.Scene {
                 enemy.body.velocity.y += b.body.velocity.y * this.friction * 10;
                 enemy.rotation += (b.rotation/20);
                 enemy.health -= 50;
-                enemy.topS.setFrame(3);
+                enemy.sprite.setFrame(3);
                 enemy.playerFire = true;
                 if(enemy.health <= 0 && !enemy.isDown){
                     enemy.die();
@@ -918,27 +929,27 @@ export class Play extends Phaser.Scene {
                     enemy.fire.pendingDelete = true;
                     enemy.isDown = true;
                     this.time.addEvent({delay: 50, callback: function(){
-                        enemy.topS.setFrame(2);
+                        enemy.sprite.setFrame(2);
                         enemy.playerFire = false;
                     }});
                 } else if(!enemy.isDown) {
                     this.time.addEvent({delay: 50, callback: function(){
-                        enemy.topS.setFrame(1);
+                        enemy.sprite.setFrame(1);
                         enemy.playerFire = false;
                     }});
                 } else if(enemy.isDown){
                     this.time.addEvent({delay: 50, callback: function(){
-                        enemy.topS.setFrame(2);
+                        enemy.sprite.setFrame(2);
                         enemy.playerFire = false;
                     }});
                 }
                 setTimeout(function(){
                     this.psd = false;
                     this.physics.isPaused = false;
-                }, 100);
+                }.bind(this), 100);
                 this.psd = true;
                 this.physics.isPaused = true;
-            });
+            }.bind(this));
             this.physics.overlap(this.enemies, this.expGroup, function(en, e){
                 if((e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8) && e.car !== en){
                     if(e.anim.frame === 6 || e.anim.frame === 7 || e.anim.frame === 8){
@@ -951,7 +962,7 @@ export class Play extends Phaser.Scene {
                         }
                     }
                 }
-            })
+            }.bind(this));
             this.physics.overlap(this.enemies, this.enemies, function(e1, e2){
                 if(!e1.isDown){
                     e1.vel = e1.body.velocity;
@@ -999,7 +1010,7 @@ export class Play extends Phaser.Scene {
                 } else {
                     e2.fire.pendingDelete = true;
                 }
-            });
+            }.bind(this));
             this.physics.overlap(this.enemies, this.blockGroup, function(e, b){
                 e.isRoading = true;
                 e.finished = false;
@@ -1017,7 +1028,7 @@ export class Play extends Phaser.Scene {
                     e.isDown = true;
                     e.fire.pendingDelete = true;
                 }
-            });
+            }.bind(this));
             if(this.jumping){
                 /*this.player.gun.alpha = 0;
                 this.player.removeChild(this.player.gun);
@@ -1092,7 +1103,7 @@ export class Play extends Phaser.Scene {
                     if(e.y > game.config.height + e.height){
                         e.destroy();
                     }
-                });
+                }, this);
                 if(i.y > game.config.height + i.height){
                     i.destroy();
                 }
