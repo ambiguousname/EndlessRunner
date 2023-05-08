@@ -1001,13 +1001,13 @@ export class Play extends Phaser.Scene {
                 this.player.addChildAt(this.player.gun, 0);
             }
         }
-        this.skG.forEach(function(i){
+        this.skG.getChildren().forEach(function(i){
             i.y += this.road.speed;
             if(i.y > game.config.height + i.height){
                 i.destroy();
             }
         });
-        this.destBlockGroup.forEach(function(i){
+        this.destBlockGroup.getChildren().forEach(function(i){
             i.y += this.road.speed;
             i.animations.frame = i.currFrame;
             if(i.y > game.config.height + i.height){
@@ -1018,7 +1018,7 @@ export class Play extends Phaser.Scene {
             this.player.weapon.fireAngle = this.player.angle - 90;
             this.player.weapon.fire();
         }
-        this.blockGroup.forEach(function(i){
+        this.blockGroup.getChildren().forEach(function(i){
             i.y += this.road.speed;
             i.body.velocity.setTo(0.95 * i.body.velocity.x, 0.95 * i.body.velocity.y);
             this.enemies.forEach(function(e){
@@ -1042,9 +1042,9 @@ export class Play extends Phaser.Scene {
         if(!this.player.tween){
             this.player.t.play();
         }
-        this.player.smoke.position.setTo(this.player.x, this.player.y + this.player.height/2 - 20);
+        this.player.smoke.setPosition(this.player.x, this.player.y + this.player.height/2 - 20);
         //Counteract player movement:
-        this.player.smoke.getChildren().forEach(function(part){
+        this.player.smoke.forEachAlive(function(part){
             if(!part.spawned){
                 part.animations.frame = Math.floor(Math.random() * 4);
                 part.spawned = true;
