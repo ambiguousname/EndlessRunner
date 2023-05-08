@@ -144,14 +144,19 @@ export class Play extends Phaser.Scene {
 
         this.physics.world.enable(this.player);
 
-        var smoke = this.add.particles("smoke", {
-            maxParticles: 1000,
+        var smoke = this.add.particles(0, 0, "smoke", {
+            lifespan: 1000,
+            maxAliveParticles: 1000,
+            frequency: 1,
             alpha: {min: 0.4, max: 0.7},
+            frame: {frames: [0, 1, 2, 3], cycle: false},
             scale: game.config.width/1000,
-            tint: 0xaaaaaa,
+            speed: {min: 0, max: 100},
         });
+        // smoke.setDepth(-0.5);
+        smoke.start();
+        smoke.emitting = false;
         // smoke.start(false, 1000, 1);
-        // smoke.on = false;
         this.player.smoke = smoke;
 
         this.shadow = this.add.sprite(10, 12, 'car');
@@ -225,20 +230,20 @@ export class Play extends Phaser.Scene {
 
     startGame() {
         this.psd = false;
-        this.keys.down.onDown(function(){
+        this.keys.down.on("down", function(){
             if(this.player.health > 0){
                 this.timeDown = 0;
                 this.time.addEvent({delay: 100, callback: function(){
                     if(!(this.arc || this.jumping)){
-                        this.player.smoke.on = true;
-                        this.player.smoke.gravity = this.player.body.velocity.y;
+                        this.player.smoke.emitting = true;
+                        this.player.smoke.gravityY = this.player.body.velocity.y;
                     }
-                }});
+                }.bind(this)});
                 if(!(this.arc || this.jumping)){
                     this.cameras.main.shake(100, 0.01);
                 }
             }
-        });
+        }, this);
         this.keys.down.onUp(function(){
             if(this.timeDown > 100 && this.timeDown < 500){
                 this.road.speed += this.timeDown/100;
@@ -535,7 +540,7 @@ export class Play extends Phaser.Scene {
                         this.spawnPad.pendingDelete = true;
                         this.enemySpawn.pendingDelete = true;
                         this.canInput = false;
-                        this.player.smoke.on = false;
+                        this.player.smoke.emitting = false;
                     }, this);
                     this.player.hit = true;
                     exp.car = this.player; //Set Explosion to track player car
@@ -587,7 +592,35 @@ export class Play extends Phaser.Scene {
         this.player.angle = Phaser.Math.Linear(this.player.angle, this.#targetAngle, 0.01);
     }
 
+    smokeUpdate() {
+        this.player.smoke.setPosition(this.player.x, this.player.y + this.player.height/2 - this.player.height/4);
+        //Counteract player movement:
+        this.player.smoke.forEachAlive(function(part){
+            /*if(!part.spawned){
+                part.anims.setCurrentFrame(Math.floor(Math.random() * 4));
+                part.spawned = true;
+            }*/
+            // TODO: Replace with it just getting added to a static group?
+            part.x -= (this.player.x - this.player.prevX) * 0.6;
+            part.y -= (this.player.y - this.player.prevY) * 0.6;
+        }, this);
+        this.player.prevX = this.player.x;
+        this.player.prevY = this.player.y;
+
+        if (this.player.smoke.emitting) {
+            if (this.player.smoke.frequency > 1) {
+                this.player.smoke.frequency -= this.#elapsed/1000;
+            }
+        } else {
+            this.player.smoke.frequency = 15;
+        }
+    }
+
+    #time = performance.now();
+    #elapsed;
     update () {
+        let now = performance.now();
+        this.#elapsed = now - this.#time;
         this.playerRotate();
 
         this.constant.playbackRate.value = this.road.speed;
@@ -610,7 +643,7 @@ export class Play extends Phaser.Scene {
             if(this.keys.up.isDown && this.keys.down.isDown && !(this.arc || this.jumping) && this.player.health > 0){
               this.timeDown += 1;
               this.cameras.main.shake(100, 0.01);
-              this.player.smoke.on = true;
+              this.player.smoke.emitting = true;
               this.player.smoke.gravity = 0;
               this.road.speed -= 0.008;
               if(this.road.speed < 0.5){
@@ -629,7 +662,7 @@ export class Play extends Phaser.Scene {
                 //     this.carSound.played = true;
                 //     this.brakeSound.played = false;
                 // }
-                this.player.smoke.on = false;
+                this.player.smoke.emitting = false;
             } else if (this.keys.down.isDown){
                 this.player.body.velocity.y += (20 * game.config.height/600);
                 this.skid(this.player);
@@ -645,7 +678,7 @@ export class Play extends Phaser.Scene {
                 //     this.carSound.played = false;
                 // }
             } else {
-                this.player.smoke.on = false;
+                this.player.smoke.emitting = false;
             }
         }
         if((this.keys.left.isDown) && this.canInput){
@@ -682,13 +715,13 @@ export class Play extends Phaser.Scene {
                 if(this.player.y < this.input.activePointer.y - this.player.height/4){
                     this.player.body.velocity.y += (20 * game.config.height/600);
                     if(!(this.arc || this.jumping) && this.player.health > 0){
-                        this.player.smoke.on = true;
-                        this.player.smoke.gravity = this.player.body.velocity.y;
+                        this.player.smoke.emitting = true;
+                        this.player.smoke.gravityY = this.player.body.velocity.y;
                     }
                 } else if (this.player.y > this.input.activePointer.y + this.player.height/4){
                     this.player.body.velocity.y -= (20 * game.config.height/600);
                 } else {
-                    this.player.smoke.on = false;
+                    this.player.smoke.emitting = false;
                 }
             }
         }
@@ -1007,7 +1040,7 @@ export class Play extends Phaser.Scene {
                     this.player.gun.alpha = 1;
                     skidTimeInt(50, this.player);
                     this.cameras.main.shake(500, 0.02);
-                    this.player.smoke.on = true;
+                    this.player.smoke.emitting = true;
                     this.player.setScale(game.config.width/3000);
                     this.shadow.x = 10;
                     this.shadow.y = 12;
@@ -1055,18 +1088,9 @@ export class Play extends Phaser.Scene {
             }, this);
             this.road.prevSpeed = this.road.speed;
         }
+        
+        this.smokeUpdate();
 
-        this.player.smoke.setPosition(this.player.x, this.player.y + this.player.height/2 - 20);
-        //Counteract player movement:
-        this.player.smoke.forEachAlive(function(part){
-            if(!part.spawned){
-                part.anims.setCurrentFrame(Math.floor(Math.random() * 4));
-                part.spawned = true;
-            }
-            part.x -= (this.player.x - this.player.prevX) * 0.6;
-            part.y -= (this.player.y - this.player.prevY) * 0.6;
-        });
-        this.player.prevX = this.player.x;
-        this.player.prevY = this.player.y;
+        this.#time = now;
     }
 };
