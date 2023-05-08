@@ -60,14 +60,8 @@ export class Play extends Phaser.Scene {
         this.skG = this.add.group();
 
         this.boostGroup = this.add.group();
-        this.boostGroup.enableBody = true;
-        this.boostGroup.physicsBodyType = Phaser.physics;
         this.blockGroup = this.add.group();
-        this.blockGroup.enableBody = true;
-        this.blockGroup.physicsBodyType = Phaser.physics;
         this.enemies = this.add.group();
-        this.enemies.enableBody = true;
-        this.enemies.physicsBodyType = Phaser.physics;
 
         this.createPlayer();
 
@@ -348,14 +342,16 @@ export class Play extends Phaser.Scene {
         });
         enemy.fire = this.time.addEvent({delay: 1000, loop: true, callback: function(){
             if(this.player.health > 0){
+                enemy.weapon.fireFrom.setPosition(enemy.x, enemy.y)
                 enemy.weapon.fire();
-                enemy.weapon.fireFrom.setPosition(enemy, enemy.width/2, enemy.height/2)
                 // this.add.sound('fire', 0.7).play();
             }
         }.bind(this)});
         enemy.health = 100;
         enemy.setScale(0.00125 * game.config.width);
         enemy.die = function(){
+            enemy.fire.destroy();
+
             //TODO: Re-enable collision of enemy cars.
             enemy.e = this.add.sprite(0, 0, 'explosion');
             enemy.e.setOrigin(0.5);
@@ -454,19 +450,19 @@ export class Play extends Phaser.Scene {
         this.midair = false;
         this.arc = false;
         this.player.weapon.bulletRotateToVelocity = true;
-        /*this.spawnPad = this.time.addEvent({delay: 9000, loop: true, callback: function(){
+        this.spawnPad = this.time.addEvent({delay: 9000, loop: true, callback: function(){
             var randX = Math.floor(Math.random() * game.config.width);
             var padShadow = this.add.sprite(randX + 12, -500, 'padSheet');
-            var pad = this.add.sprite(randX, -500, 'padSheet');
+            var pad = this.physics.add.sprite(randX, -500, 'padSheet');
             padShadow.tint = 0x000000;
             padShadow.alpha = 0.8;
-            var anim = pad.anims.add('go');
-            pad.anims.play('go', 12, true);
+            pad.anims.create({key: "go", frames: this.anims.generateFrameNumbers("padSheet"), frameRate: 15})
+            pad.play({key: 'go', frameRate: 12, repeat: -1});
             pad.setScale(0.00125 * game.config.width);
             padShadow.setScale(game.config.width/800);
             this.boostGroup.add(padShadow);
             this.boostGroup.add(pad);
-        }.bind(this)});*/
+        }.bind(this)});
         //TO ADD(?):
         // b.body.velocity.x += p.body.velocity.x * this.friction;
             // b.body.velocity.y += p.body.velocity.y * this.friction;
@@ -486,7 +482,6 @@ export class Play extends Phaser.Scene {
         }
         var sound = soundManager.play('crash');
         sound.playbackRate.value = Math.random() * 2;
-        var vel = b.body.velocity;
         setTimeout(function(){
             this.psd = false;
             this.physics.isPaused = false;
@@ -772,7 +767,7 @@ export class Play extends Phaser.Scene {
                 if(pad.y - pad.height > game.config.height){
                     pad.destroy();
                 }
-            });
+            }, this);
             if(this.player.health <= 0){
                 this.skid(this.player);
             }
