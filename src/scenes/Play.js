@@ -33,7 +33,7 @@ export class Play extends Phaser.Scene {
     }
 
     create() {
-        this.physics.world.setBounds();
+        // this.physics.world.setBounds(game.config.width, game.config.height);
         
 
         this.plugins.installScenePlugin(
@@ -131,13 +131,14 @@ export class Play extends Phaser.Scene {
     }
 
     createPlayer() {
-        this.player = this.physics.add.sprite(game.config.width/2, game.config.height + 100, 'carSheet');
-        this.player.setOrigin(0.5);
-        this.player.setScale(game.config.width/3000);
-        // this.player = this.add.container(sprite);
-        // this.player.sprite = sprite;
+        let sprite = this.add.sprite(0, 0, 'carSheet');
+        sprite.setScale(game.config.width/3000);
+        sprite.setOrigin(0.5);
+        this.player = this.add.container(game.config.width/2, game.config.height + 100, sprite);
+        this.player.setSize(sprite.width * sprite.scaleX, sprite.height * sprite.scaleY);
+        this.player.sprite = sprite;
 
-        window.p = this.player;
+        this.physics.world.enable(this.player);
 
         var smoke = this.add.particles("smoke", {
             maxParticles: 1000,
@@ -209,15 +210,15 @@ export class Play extends Phaser.Scene {
 
         this.player.tween = this.add.tween({
             targets: this.player,
-            y: game.config.height - 50,
+            y: game.config.height - 100,
             duration: 1000 
         });
         this.player.tween.on("complete", function(){
             this.canInput = true;
-            this.player.body.collideWorldBounds = true;
+            this.player.body.setCollideWorldBounds(true);
             this.player.tween = null;
         }, this);
-        this.player.tween.play();
+        // this.player.tween.play();
     }
 
     startGame() {
@@ -455,8 +456,6 @@ export class Play extends Phaser.Scene {
             //     }   
             // }
         this.canInput = false;
-
-        
     }
 
     death(p, b) {
@@ -584,7 +583,7 @@ export class Play extends Phaser.Scene {
             this.shadowT.x = this.shadowT.truck.x + 5;
             this.shadowT.y = this.shadowT.truck.y + 5;
         }
-        this.player.body.velocity.setTo(0.9 * this.player.body.velocity.x, 0.9 * this.player.body.velocity.y);
+        this.player.body.setVelocity(0.9 * this.player.body.velocity.x, 0.9 * this.player.body.velocity.y);
         this.player.t = this.add.tween({targets: this.player});
         function skidTimeInt(time, sprite){
             var loop = this.time.addEvent({delay: 1, loop: true, callback: function(){
