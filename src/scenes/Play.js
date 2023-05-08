@@ -242,7 +242,7 @@ export class Play extends Phaser.Scene {
                 }
             }
         }, this);
-        this.keys.down.onUp(function(){
+        this.keys.down.on("up", function(){
             if(this.timeDown > 100 && this.timeDown < 500){
                 this.road.speed += this.timeDown/100;
                 this.player.body.velocity.y -= this.timeDown * 10;
@@ -251,7 +251,7 @@ export class Play extends Phaser.Scene {
                 this.road.speed += 5;
                 this.player.body.velocity.y -= 5000;
             }
-        });
+        }, this);
         //For jumping:
         /*
         this.player.scale.x += 0.001;
