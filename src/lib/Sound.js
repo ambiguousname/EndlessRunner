@@ -1,7 +1,7 @@
 //https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode/playbackRate
 //https://developer.mozilla.org/en-US/docs/Web/API/AudioContext
 var AudioContext = window.AudioContext || window.webkitAudioContext;
-var soundManager = {
+export let soundManager = {
 	audioCtx: new AudioContext(),
 	buffers: [],
 	load: function(key, path){
