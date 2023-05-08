@@ -198,27 +198,27 @@ export class Play extends Phaser.Scene {
         }, this);
         this.player.health = 100;
         this.player.maxHealth = 100;
-        this.fire = this.input.keyboard.addKey(Phaser.KeyCode.CONTROL);
-        this.altFire = this.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
+        this.fire = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CONTROL);
+        this.altFire = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACEBAR);
     }
 
     startGame() {
         this.psd = false;
-        this.keys.down.onDown.add(function(){
+        this.keys.down.onDown(function(){
             if(this.player.health > 0){
                 this.timeDown = 0;
-                this.time.events.add(100, function(){
+                this.time.addEvent({delay: 100, callback: function(){
                     if(!(this.arc || this.jumping)){
                         this.player.smoke.on = true;
                         this.player.smoke.gravity = this.player.body.velocity.y;
                     }
-                });
+                }});
                 if(!(this.arc || this.jumping)){
                     this.cameras.main.shake(100, 0.01);
                 }
             }
         });
-        this.keys.down.onUp.add(function(){
+        this.keys.down.onUp(function(){
             if(this.timeDown > 100 && this.timeDown < 500){
                 this.road.speed += this.timeDown/100;
                 this.player.body.velocity.y -= this.timeDown * 10;
@@ -251,7 +251,7 @@ export class Play extends Phaser.Scene {
                 enemy.tween.onUpdateCallback(enemy.updatePos, enemy); //Check if I need to go, change "this" references to enemy object.
             }
         }
-        this.enemySpawn = this.time.events.loop(3000, function(){
+        this.enemySpawn = this.time.addEvent({delay: 3000, loop: true, callback: function(){
             var random = Math.floor(Math.random() * 2);
             var x = -this.player.width;
             if(random === 1){
@@ -332,13 +332,12 @@ export class Play extends Phaser.Scene {
             enemy.tween.onComplete.add(function(){
                 enemy.finished = true;
             });
-            enemy.index = this.time.events.events.length;
-            enemy.fire = this.time.events.loop(1000, function(){
+            enemy.fire = this.time.addEvent({delay: 1000, loop: true, callback: function(){
                 if(this.player.health > 0){
                     enemy.weapon.fire();
                     this.add.sound('fire', 0.7).play();
                 }
-            });
+            }});
             enemy.health = 100;
             enemy.setScale(0.00125 * game.config.width);
             enemy.die = function(){
@@ -379,12 +378,12 @@ export class Play extends Phaser.Scene {
                 this.expGroup.add(enemy.e);
             }
             this.enemies.add(enemy);
-        });
+        }});
         var randomTime = Math.floor(Math.random() * (3000 -1000 - (this.road.speed * 100)) + 1000);
         if(randomTime < 1000){
             randomTime = 1000 + Math.floor(Math.random() * 1000) - 500;
         }
-        this.time.events.add(randomTime, createItem);
+        this.time.addEvent({delay: randomTime, callback: createItem});
         function createItem(){
             if(Math.random() > 0.2 && (this.road.speed * 10) + 10 < 60){
                 for(var i = 0; i < Math.floor(Math.random() * 5) + 1; i++){
@@ -407,14 +406,14 @@ export class Play extends Phaser.Scene {
                 randomTime = 1000 + Math.floor(Math.random() * 1000) - 500;
             }
             if(this.player.health > 0){
-                this.time.events.add(randomTime, createItem);
+                this.time.addEvent({delay: randomTime, callback: createItem});
             }
         }
         this.jumping = false;
         this.midair = false;
         this.arc = false;
         this.player.weapon.bulletRotateToVelocity = true;
-        this.spawnPad = this.time.events.loop(9000, function(){
+        this.spawnPad = this.time.addEvent({delay: 9000, loop: true, callback: function(){
             var randX = Math.floor(Math.random() * game.config.width);
             var padShadow = this.add.sprite(randX + 12, -500, 'padSheet');
             var pad = this.add.sprite(randX, -500, 'padSheet');
@@ -426,7 +425,7 @@ export class Play extends Phaser.Scene {
             padShadow.setScale(game.config.width/800);
             this.boostGroup.add(padShadow);
             this.boostGroup.add(pad);
-        });
+        }});
         //TO ADD(?):
         // b.body.velocity.x += p.body.velocity.x * this.friction;
             // b.body.velocity.y += p.body.velocity.y * this.friction;
@@ -555,13 +554,13 @@ export class Play extends Phaser.Scene {
         this.player.body.velocity.setTo(0.9 * this.player.body.velocity.x, 0.9 * this.player.body.velocity.y);
         this.player.t = this.add.tween(this.player);
         function skidTimeInt(time, sprite){
-            var loop = this.time.events.loop(1, function(){
+            var loop = this.time.addEvent({delay: 1, loop: true, callback: function(){
                 loop.cT += 1;
                 if(loop.cT >= time){
                     loop.pendingDelete = true;
                 }
                 skid(sprite);
-            });
+            }});
             loop.cT = 0;
         }
         function skid(sprite){
@@ -700,7 +699,7 @@ export class Play extends Phaser.Scene {
             enemy.weapon.fireAngle = Math.floor(Math.random() * 30) - 15 + (this.physics.angleBetween(enemy, this.player) / (Math.PI/180));
             this.physics.collide(enemy.weapon.bullets, this.blockGroup, function(b, blocker){
                 b.kill();
-                this.time.events.add(100, function(){
+                this.time.addEvent({delay: 100, function(){
                     blocker.hp -= 25;
                     if(blocker.hp <= 0){
                         blocker.animations.frame = Math.floor(Math.random() * 3) + 2;
@@ -709,7 +708,7 @@ export class Play extends Phaser.Scene {
                         blocker.body.velocity.setTo(0);
                         this.destBlockGroup.add(blocker);
                     }
-                });
+                }});
             });
             if(enemy.isMoving){
                 var enemyTween = this.add.tween(enemy);
@@ -727,9 +726,9 @@ export class Play extends Phaser.Scene {
                         newVelY = game.config.height - enemy.height;
                     }
                     enemy.body.velocity.setTo(newVelX + enemy.body.velocity.x, newVelY + enemy.body.velocity.y);
-                    this.time.events.add(1000, function(){
+                    this.time.addEvent({delay: 1000, callback: function(){
                         enemy.finished = true;
-                    });
+                    }});
                     enemy.finished = false;
                 }
                 if(enemy.x > enemy.prevX){
@@ -776,7 +775,7 @@ export class Play extends Phaser.Scene {
                 blocker.body.velocity.x = b.body.velocity.x * (this.friction * 12);
                 blocker.body.velocity.y = b.body.velocity.y * (this.friction * 12);
                 blocker.animations.frame = 1;
-                this.time.events.add(100, function(){
+                this.time.addEvent({delay: 100, callback: function(){
                     blocker.animations.frame = 0;
                     blocker.hp -= 25;
                     if(blocker.hp <= 0){
@@ -787,7 +786,7 @@ export class Play extends Phaser.Scene {
                         blocker.body.velocity.setTo(0);
                         this.destBlockGroup.add(blocker);
                     }
-                });
+                }});
                 setTimeout(function(){
                     this.psd = false;
                     this.physics.isPaused = false;
@@ -848,20 +847,20 @@ export class Play extends Phaser.Scene {
                 enemy.isMoving = false;
                 enemy.fire.pendingDelete = true;
                 enemy.isDown = true;
-                this.time.events.add(50, function(){
+                this.time.addEvent({delay: 50, callback: function(){
                     enemy.topS.frame = 2;
                     enemy.playerFire = false;
-                });
+                }});
             } else if(!enemy.isDown) {
-                this.time.events.add(50, function(){
+                this.time.addEvent({delay: 50, callback: function(){
                     enemy.topS.frame = 1;
                     enemy.playerFire = false;
-                });
+                }});
             } else if(enemy.isDown){
-                this.time.events.add(50, function(){
+                this.time.addEvent({delay: 50, callback: function(){
                     enemy.topS.frame = 2;
                     enemy.playerFire = false;
-                });
+                }});
             }
             setTimeout(function(){
                 this.psd = false;
