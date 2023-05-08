@@ -132,10 +132,10 @@ export class Play extends Phaser.Scene {
 
     createPlayer() {
         let sprite = this.add.sprite(0, 0, 'carSheet');
-        sprite.setScale(game.config.width/3000);
         sprite.setOrigin(0.5);
         this.player = this.add.container(game.config.width/2, game.config.height + 100, sprite);
-        this.player.setSize(sprite.width * sprite.scaleX, sprite.height * sprite.scaleY);
+        this.player.setSize(sprite.width, sprite.height);
+        this.player.setScale(game.config.width/3000);
         this.player.sprite = sprite;
 
         this.physics.world.enable(this.player);
@@ -155,12 +155,7 @@ export class Play extends Phaser.Scene {
         this.shadow.alpha = 0.8;
         this.shadow.setOrigin(0.5);
         this.shadow.setScale(3.7);
-        // this.player.add(this.shadow);
-
-
-        this.player.topS = this.add.sprite(0, 0, 'carSheet');
-        this.player.topS.setOrigin(0.5);
-        // this.player.add(this.player.topS);
+        this.player.add(this.shadow);
 
         this.expGroup = this.add.group();
         this.expGroup.enableBody = true;
@@ -169,15 +164,19 @@ export class Play extends Phaser.Scene {
         this.wheelRight = this.add.sprite(this.player.width/2, this.player.height/2, 'f');
         this.wheelLeft.alpha = 0;
         this.wheelRight.alpha = 0;
-        // this.player.add(this.wheelLeft);
-        // this.player.add(this.wheelRight);
+        this.player.add(this.wheelLeft);
+        this.player.add(this.wheelRight);
 
-        var gun = this.add.sprite(0, -this.player.height * 3/4, 'gun');
-        gun.setOrigin(0.5);
+        var gun = this.add.sprite(0, 0, 'gun');
+        gun.setOrigin(0.5, 2);
         gun.setScale(3);
         gun.canShoot = true;
-        // this.player.add(gun);
+        this.player.add(gun);
         this.player.gun = gun;
+        
+        // Ordering:
+        this.player.sendToBack(this.player.gun);
+        this.player.sendToBack(this.shadow);
 
         this.friction = 0.05;
         this.dying = false;
