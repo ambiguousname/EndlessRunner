@@ -266,7 +266,7 @@ export class Play extends Phaser.Scene {
                 enemy.tween.onUpdateCallback(enemy.updatePos, enemy); //Check if I need to go, change "this" references to enemy object.
             }
         }
-        this.enemySpawn = this.time.addEvent({delay: 3000, loop: true, callback: function(){
+        /*this.enemySpawn = this.time.addEvent({delay: 3000, loop: true, callback: function(){
             var random = Math.floor(Math.random() * 2);
             var x = -this.player.width;
             if(random === 1){
@@ -362,7 +362,7 @@ export class Play extends Phaser.Scene {
                 enemy.e.setScale(2 * game.config.width/800);
                 enemy.e.angle = Math.floor(Math.random() * 360);
                 enemy.rotate = (Math.random() * 2) - 1;
-                enemy.e.anim = enemy.e.animations.add('explode');
+                enemy.e.anim = enemy.e.anims.add('explode');
                 var sound = soundManager.play('crash');
                 sound.playbackRate.value = Math.random() * 2;
                 var dec = false;
@@ -385,7 +385,7 @@ export class Play extends Phaser.Scene {
                     clearInterval(int);
                     enemy.e.destroy();
                 }, this);
-                enemy.e.animations.play('explode', 12, false);
+                enemy.e.anims.play('explode', 12, false);
                 enemy.e.car = enemy;
                 if(!enemy.playerFire){
                     enemy.topS.frame = 2;
@@ -393,12 +393,12 @@ export class Play extends Phaser.Scene {
                 this.expGroup.add(enemy.e);
             }
             this.enemies.add(enemy);
-        }});
+        }.bind(this)});*/
         var randomTime = Math.floor(Math.random() * (3000 -1000 - (this.road.speed * 100)) + 1000);
         if(randomTime < 1000){
             randomTime = 1000 + Math.floor(Math.random() * 1000) - 500;
         }
-        this.time.addEvent({delay: randomTime, callback: createItem.bind(this)});
+        // this.time.addEvent({delay: randomTime, callback: createItem.bind(this)});
         function createItem(){
             if(Math.random() > 0.2 && (this.road.speed * 10) + 10 < 60){
                 for(var i = 0; i < Math.floor(Math.random() * 5) + 1; i++){
@@ -410,7 +410,7 @@ export class Play extends Phaser.Scene {
                     if(randomX > game.config.width){
                         randomX = game.config.width - 50;
                     }
-                    var sprite = this.add.sprite(randomX, -100, 'roadblock');
+                    var sprite = this.physics.add.sprite(randomX, -100, 'roadblock');
                     sprite.hp = 100;
                     sprite.setScale(0.00125 * game.config.width);
                     this.blockGroup.add(sprite);
@@ -428,19 +428,19 @@ export class Play extends Phaser.Scene {
         this.midair = false;
         this.arc = false;
         this.player.weapon.bulletRotateToVelocity = true;
-        this.spawnPad = this.time.addEvent({delay: 9000, loop: true, callback: function(){
+        /*this.spawnPad = this.time.addEvent({delay: 9000, loop: true, callback: function(){
             var randX = Math.floor(Math.random() * game.config.width);
             var padShadow = this.add.sprite(randX + 12, -500, 'padSheet');
             var pad = this.add.sprite(randX, -500, 'padSheet');
             padShadow.tint = 0x000000;
             padShadow.alpha = 0.8;
-            var anim = pad.animations.add('go');
-            pad.animations.play('go', 12, true);
+            var anim = pad.anims.add('go');
+            pad.anims.play('go', 12, true);
             pad.setScale(0.00125 * game.config.width);
             padShadow.setScale(game.config.width/800);
             this.boostGroup.add(padShadow);
             this.boostGroup.add(pad);
-        }});
+        }.bind(this)});*/
         //TO ADD(?):
         // b.body.velocity.x += p.body.velocity.x * this.friction;
             // b.body.velocity.y += p.body.velocity.y * this.friction;
@@ -508,8 +508,8 @@ export class Play extends Phaser.Scene {
                     var exp = this.add.sprite(-10, -15, 'explosion'); //Generate explosion
                     exp.setOrigin(0.5);
                     exp.setScale(10);
-                    exp.anim = exp.animations.add('explode');
-                    exp.animations.play('explode', 15, false);
+                    exp.anim = exp.anims.add('explode');
+                    exp.anims.play('explode', 15, false);
                     var dec = false;
                     var int = setInterval(function(){
                         if(exp.anim.frame >= 7){
@@ -538,14 +538,14 @@ export class Play extends Phaser.Scene {
                     this.expGroup.add(exp);
                 }
                 b.body.velocity.y -= this.road.speed * 100;
-                this.enemies.forEach(function(e){
+                this.enemies.getChildren().forEach(function(e){
                     e.weapon.bullets.getChildren().forEach(function(bull){
                         if(!bull.done){
                             bull.body.velocity.y -= this.road.speed * 400; //Speed up bullets
                             bull.done = true;
                         }
                     });
-                });
+                }, this);
                 this.road.speed = 0; //Stop road
             }
         }
@@ -713,8 +713,8 @@ export class Play extends Phaser.Scene {
                     this.time.addEvent({delay: 100, function(){
                         blocker.hp -= 25;
                         if(blocker.hp <= 0){
-                            blocker.animations.frame = Math.floor(Math.random() * 3) + 2;
-                            blocker.currFrame = blocker.animations.frame;
+                            blocker.anims.setCurrentFrame(Math.floor(Math.random() * 3) + 2);
+                            blocker.currFrame = blocker.anims.currentFrame;
                             this.blockGroup.remove(blocker);
                             blocker.body.velocity.setTo(0);
                             this.destBlockGroup.add(blocker);
@@ -785,14 +785,15 @@ export class Play extends Phaser.Scene {
                     }
                     blocker.body.velocity.x = b.body.velocity.x * (this.friction * 12);
                     blocker.body.velocity.y = b.body.velocity.y * (this.friction * 12);
-                    blocker.animations.frame = 1;
+                    blocker.anims.create();
+                    blocker.anims.setCurrentFrame(1);
                     this.time.addEvent({delay: 100, callback: function(){
-                        blocker.animations.frame = 0;
+                        blocker.anims.setCurrentFrame(0);
                         blocker.hp -= 25;
                         if(blocker.hp <= 0){
                             var rand = Math.floor(Math.random() * 3) + 2;
-                            blocker.animations.frame = rand;
-                            blocker.currFrame = blocker.animations.frame;
+                            blocker.anims.setCurrentFrame(rand);
+                            blocker.currFrame = blocker.anims.currentFrame;
                             this.blockGroup.remove(blocker);
                             blocker.body.velocity.setTo(0);
                             this.destBlockGroup.add(blocker);
@@ -1011,7 +1012,7 @@ export class Play extends Phaser.Scene {
             }, this);
             this.destBlockGroup.getChildren().forEach(function(i){
                 i.y += this.road.speed;
-                i.animations.frame = i.currFrame;
+                i.anims.setCurrentFrame(i.currFrame);
                 if(i.y > game.config.height + i.height){
                     i.destroy();
                 }
@@ -1023,7 +1024,7 @@ export class Play extends Phaser.Scene {
             this.blockGroup.getChildren().forEach(function(i){
                 i.y += this.road.speed;
                 i.body.velocity.setTo(0.95 * i.body.velocity.x, 0.95 * i.body.velocity.y);
-                this.enemies.forEach(function(e){
+                this.enemies.getChildren().forEach(function(e){
                     this.physics.overlap(this.expGroup, e.weapon.bullets, function(ex, b){
                         if((ex.anim.frame === 6 || ex.anim.frame === 7 || ex.anim.frame === 8)){
                             b.body.velocity.x += 90/(b.x - ex.x);
@@ -1041,7 +1042,7 @@ export class Play extends Phaser.Scene {
             }, this);
             this.road.prevSpeed = this.road.speed;
         }
-        
+
         if(!this.player.tween){
             this.player.t.play();
         }
@@ -1049,7 +1050,7 @@ export class Play extends Phaser.Scene {
         //Counteract player movement:
         this.player.smoke.forEachAlive(function(part){
             if(!part.spawned){
-                part.animations.frame = Math.floor(Math.random() * 4);
+                part.anims.setCurrentFrame(Math.floor(Math.random() * 4));
                 part.spawned = true;
             }
             part.x -= (this.player.x - this.player.prevX) * 0.6;
