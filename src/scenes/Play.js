@@ -23,7 +23,7 @@ export class Play extends Phaser.Scene {
         this.load.spritesheet("carSheet", "./assets/images/carSpriteSheet.png", { frameWidth: 100, frameHeight: 146, frameMax: 3});
         this.load.spritesheet("mustangishSheet", "./assets/images/mustang-ishSheet.png", {frameWidth: 26, frameHeight: 51, frameMax: 4});
         this.load.spritesheet("padSheet", "./assets/images/PadSpritesheet.png", {frameWidth: 32, frameHeight: 32, frameMax: 5});
-        this.load.spritesheet("explosion", "./assets/images/explosion.png", {frameWidth: 64, frameWidth: 64, frameMax: 13});
+        this.load.atlas("explosion", "./assets/images/explosion.png", "./assets/images/explosion_atlas.json");
         
         var graphics = this.make.graphics();
         graphics.fillStyle(0xffffff);
@@ -64,6 +64,9 @@ export class Play extends Phaser.Scene {
         this.enemies = this.add.group();
 
         this.createPlayer();
+
+        this.anims.create({key: "explode", frames: this.anims.generateFrameNames("explosion", {prefix: "explosion", start: 1, end: 13}), frameRate: 15});
+        this.anims.create({key: "go", frames: this.anims.generateFrameNumbers("padSheet"), frameRate: 15})
 
         this.psd = true;
 
@@ -358,13 +361,12 @@ export class Play extends Phaser.Scene {
             enemy.e.setScale(2 * game.config.width/800);
             enemy.e.angle = Math.floor(Math.random() * 360);
             enemy.rotate = (Math.random() * 2) - 1;
-            enemy.e.anim = enemy.e.anims.create({key: 'explode', frames: this.anims.generateFrameNumbers("explosion")});
             enemy.e.play("explode");
             var sound = soundManager.play('crash');
             sound.playbackRate.value = Math.random() * 2;
             var dec = false;
             var int = setInterval(function(){
-                if(enemy.e.anim.frame >= 7){
+                if(enemy.e.currentFrame >= 7){
                     dec = true;
                 }
                 if(!dec){
@@ -376,11 +378,11 @@ export class Play extends Phaser.Scene {
                 enemy.e.angle += enemy.rotate;
                 
             }, 1);
-            enemy.e.on("complete", function(){
+            enemy.e.on("animationcomplete", function(){
                 clearInterval(int);
                 enemy.e.destroy();
             }, this);
-            enemy.e.anims.play('explode', 12, false);
+            enemy.e.play('explode');
             enemy.e.car = enemy;
             if(!enemy.playerFire){
                 enemy.sprite.setFrame(2);
@@ -456,7 +458,6 @@ export class Play extends Phaser.Scene {
             var pad = this.physics.add.sprite(randX, -500, 'padSheet');
             padShadow.tint = 0x000000;
             padShadow.alpha = 0.8;
-            pad.anims.create({key: "go", frames: this.anims.generateFrameNumbers("padSheet"), frameRate: 15})
             pad.play({key: 'go', frameRate: 12, repeat: -1});
             pad.setScale(0.00125 * game.config.width);
             padShadow.setScale(game.config.width/800);
@@ -535,7 +536,6 @@ export class Play extends Phaser.Scene {
                     var exp = this.add.sprite(-100, -100, 'explosion'); //Generate explosion
                     exp.setOrigin(0.5);
                     exp.setScale(10);
-                    exp.anim = exp.anims.create({key: "explode", frames: this.anims.generateFrameNumbers("explosion"), frameRate: 15});
                     exp.play('explode');
                     var dec = false;
                     var int = setInterval(function(){
