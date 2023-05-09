@@ -187,7 +187,7 @@ export class Play extends Phaser.Scene {
             scale: game.config.width/1000,
             speed: {min: 0, max: 100},
         });
-        // smoke.setDepth(-0.5);
+        smoke.setDepth(1);
         smoke.start();
         smoke.emitting = false;
         // smoke.start(false, 1000, 1);
@@ -639,6 +639,9 @@ export class Play extends Phaser.Scene {
 
             skRight.setScale((0.4) * 0.00125 * game.config.width, this.road.speed/5);
             skLeft.setScale(0.4 * 0.00125 * game.config.width, this.road.speed/5);
+
+            skLeft.angle = this.player.angle;
+            skRight.angle = this.player.angle;
 
             skLeft.depth = -1;
             skRight.depth = -1;
