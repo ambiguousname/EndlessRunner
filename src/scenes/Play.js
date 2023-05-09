@@ -547,6 +547,7 @@ export class Play extends Phaser.Scene {
                 fill: "#ffffff",
                 font: "20px Arial"
             });
+            button.setDisplaySize(text.width + 50, text.height + 50);
             text.setOrigin(0.5);
             var tween = this.add.tween({
                 targets: [button, text],
