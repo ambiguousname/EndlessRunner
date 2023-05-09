@@ -4,8 +4,6 @@ Not Spy Hunter
 Started: 10:54 at 5/8
 
 Todo:
-- Texture Atlas
-- In-Game Instructions
 - Looping Background Music
 - SFX
 - In-game credits

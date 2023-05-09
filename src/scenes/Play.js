@@ -24,6 +24,8 @@ export class Play extends Phaser.Scene {
         this.load.spritesheet("mustangishSheet", "./assets/images/mustang-ishSheet.png", {frameWidth: 26, frameHeight: 51, frameMax: 4});
         this.load.spritesheet("padSheet", "./assets/images/PadSpritesheet.png", {frameWidth: 32, frameHeight: 32, frameMax: 5});
         this.load.atlas("explosion", "./assets/images/explosion.png", "./assets/images/explosion_atlas.json");
+
+        this.load.image("tutorial", "./assets/images/tutorial.png");
         
         var graphics = this.make.graphics();
         graphics.fillStyle(0xffffff);
@@ -221,6 +223,21 @@ export class Play extends Phaser.Scene {
             this.player.body.setCollideWorldBounds(true);
             this.player.tween = null;
         }, this);
+
+        
+        if (localStorage.getItem("tutorial") === null) {
+            this.tutorial = this.add.image(0, 0, "tutorial");
+            this.tutorial.setScale(2);
+            localStorage.setItem("tutorial", true);
+            this.player.add(this.tutorial);
+            setTimeout(function(){
+                this.add.tween({
+                    targets: this.tutorial,
+                    alpha: 0,
+                    duration: 1000
+                });
+            }.bind(this), 5000);
+        }
     }
 
     
