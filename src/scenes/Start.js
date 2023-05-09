@@ -1,3 +1,5 @@
+import { soundManager } from "../lib/Sound.js";
+
 export class Start extends Phaser.Scene {
     constructor() {
         super("Start");
@@ -9,10 +11,14 @@ export class Start extends Phaser.Scene {
         graphics.fillRect(0, 0, 1, 1);
         graphics.generateTexture("button", 1, 1);
         graphics.destroy();
+
+        soundManager.load("hit", "./assets/sounds/hit.mp3");
+        soundManager.load('crash', './assets/sounds/explosion.mp3');
     }
     create() {
         // Holy cow, this is all terrible.
         function start(){
+            soundManager.play("crash");
             this.cameras.main.shake(1000, 0.01);
             setTimeout(function(){
                 this.scene.start('Play');
@@ -48,16 +54,22 @@ export class Start extends Phaser.Scene {
         setTimeout(function(){ //Nesting because lazy
             titleText.text += "Not ";
             this.cameras.main.shake(100, 0.01);
+            soundManager.play("hit").playbackRate.value = 0.5;
             setTimeout(function(){
                 titleText.text += "Spy ";
                 this.cameras.main.shake(100, 0.01);
+                soundManager.play("hit").playbackRate.value = 0.6;
                 setTimeout(function(){
                     titleText.text += "Hunter";
                     this.cameras.main.shake(100, 0.01);
+                    soundManager.play("hit").playbackRate.value = 0.7;
                     setTimeout(function(){
                         subtitleText.alpha = 1;
                         this.cameras.main.shake(100, 0.01);
+                        soundManager.play("hit").playbackRate.value = 1;
                         setTimeout(function(){
+                            this.cameras.main.shake(100, 0.01);
+                            soundManager.play("hit").playbackRate.value = 1;
                             button.alpha = 1;
                             text.alpha = 1;
                             this.cameras.main.shake(100, 0.01);

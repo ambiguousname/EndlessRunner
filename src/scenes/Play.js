@@ -35,7 +35,6 @@ export class Play extends Phaser.Scene {
         soundManager.load('crash', './assets/sounds/explosion.mp3');
         soundManager.load('fire', './assets/sounds/fire.mp3');
         soundManager.load("hit", "./assets/sounds/hit.mp3");
-        soundManager.load("music", "./assets/sounds/music.mp3");
     }
 
     create() {
