@@ -555,6 +555,8 @@ export class Play extends Phaser.Scene {
                         this.spawnPad.loop = false;
                         this.spawnPad.pendingDelete = true;
                         this.enemySpawn.pendingDelete = true;
+                        this.spawnPad.destroy();
+                        this.enemySpawn.destroy();
                         this.canInput = false;
                         this.player.smoke.emitting = false;
                     }, this);
@@ -651,10 +653,11 @@ export class Play extends Phaser.Scene {
         }
         this.player.body.setVelocity(0.9 * this.player.body.velocity.x, 0.9 * this.player.body.velocity.y);
         function skidTimeInt(time, sprite){
-            var loop = this.time.addEvent({delay: 1, loop: true, callback: function(){
+            let loop = this.time.addEvent({delay: 1, loop: true, callback: function(){
                 loop.cT += 1;
                 if(loop.cT >= time){
                     loop.pendingDelete = true;
+                    loop.destroy();
                 }
                 this.skid(sprite);
             }.bind(this)});
@@ -822,6 +825,7 @@ export class Play extends Phaser.Scene {
                 }
                 if(enemy.y > game.config.height){
                     enemy.fire.pendingDelete = true;
+                    enemy.fire.destroy();
                     enemy.destroy();
                 }
                 if(!(this.jumping || this.arc)){
@@ -922,6 +926,7 @@ export class Play extends Phaser.Scene {
                     enemy.tween.stop();
                     enemy.isMoving = false;
                     enemy.fire.pendingDelete = true;
+                    enemy.fire.destroy();
                     enemy.isDown = true;
                     this.time.addEvent({delay: 50, callback: function(){
                         enemy.sprite.setFrame(2);
@@ -999,11 +1004,13 @@ export class Play extends Phaser.Scene {
                     e1.health = 1;
                 } else {
                     e1.fire.pendingDelete = true;
+                    e1.fire.destroy();
                 }
                 if(e2.health > 50 && !e2.isDown){
                     e2.health = 1;
                 } else {
                     e2.fire.pendingDelete = true;
+                    e2.fire.destroy();
                 }
             }.bind(this));
             this.physics.overlap(this.enemies, this.blockGroup, function(e, b){
@@ -1022,6 +1029,7 @@ export class Play extends Phaser.Scene {
                 } else {
                     e.isDown = true;
                     e.fire.pendingDelete = true;
+                    e.fire.destroy();
                 }
             }.bind(this));
             if(this.jumping){
@@ -1042,17 +1050,25 @@ export class Play extends Phaser.Scene {
                     //SOUND
                     this.midair = false;
                     this.player.sprite.setScale(this.player.sprite.scale + 0.02 * (game.config.width/3000));
+                    this.player.gun.setScale(this.player.gun.scale + 0.05 * (game.config.width/3000));
+                    this.shadow.setScale(this.shadow.scale + 0.02 * (game.config.width/3000));
                     this.shadow.x += 2;
                     this.player.sprite.x -= 2;
+                    this.player.gun.x -= 2;
+                    this.player.gun.y += 0.02 * game.config.width/3000;
                     this.#targetAngle = 0;
                 }
             } else if (this.arc){
                 this.player.sprite.setScale(this.player.sprite.scale - 0.02 * (game.config.width/3000));
+                this.shadow.setScale(this.shadow.scale - 0.02 * (game.config.width/3000));
+                this.player.gun.setScale(this.player.gun.scale - 0.05 * (game.config.width/3000));
                 this.shadow.x -= 2;
                 this.player.sprite.x += 2;
+                this.player.gun.x += 2;
+                this.player.gun.y -= 0.02 * game.config.width/3000;
                 // this.constant.volume -= 0.01;
                 //SOUND
-                if(this.player.scale <= game.config.width/3000){
+                if(this.player.sprite.scale <= 1){
                     this.arc = false;
                     this.player.gun.alpha = 1;
                     skidTimeInt.call(this, 50, this.player);
@@ -1060,6 +1076,8 @@ export class Play extends Phaser.Scene {
                     this.cameras.main.shake(500, 0.02);
                     this.player.smoke.emitting = true;
                     this.player.sprite.setScale(1);
+                    this.shadow.setScale(3.7);
+                    this.player.gun.setScale(3);
                     this.player.sprite.x = 0;
                     this.player.sprite.y = 0;
                     this.shadow.x = 10;

@@ -16,9 +16,6 @@ window.game = new Phaser.Game({
 	parent: "game",
 	scene: [Scenes.Play, Scenes.Start],
 	physics: {
-		default: 'arcade',
-        arcade: {
-            debug: true,
-        }
+		default: 'arcade'
 	},
 });
