@@ -323,10 +323,9 @@ export class Play extends Phaser.Scene {
             }
             return [newX, newY]
         }
-        enemy.updatePos = function(){ //Determines if the enemy no longer needs to move out of the way
+        enemy.updatePos = function(self){ //Determines if the enemy no longer needs to move out of the way
             var shouldMove = false; //Should I keep moving?
-            var self = this; //Ref to enemy
-            this.blockGroup.forEach(function(b){
+            this.blockGroup.getChildren().forEach(function(b){
                 if(b.x - b.width < self.x + self.width && b.x + b.width > self.x - self.width){
                     shouldMove = true; //If I'm in the way of any obstacles, I want to keep moving
                 }
@@ -353,10 +352,12 @@ export class Play extends Phaser.Scene {
         
         enemy.isMoving = true;
         enemy.isDodging = false;
+        let pos = {x: game.config.width/2, y: Math.floor(Math.random() * game.config.height - (game.config.height - this.player.y)) - 20};
+        let dist = Math.sqrt(Math.pow(pos.x, 2) + Math.pow(pos.y, 2));
         enemy.tween = this.add.tween({targets: enemy,
-            x:game.config.width/2,
-            y:Math.floor(Math.random() * game.config.height - (game.config.height - this.player.y)) - 20,
-            duration: 5000/this.road.speed
+            x: pos.x,
+            y: pos.y,
+            duration: Math.max(5000/this.road.speed, 3000)
         });
         enemy.angle = 0;
         enemy.prevX = enemy.x;
@@ -468,15 +469,18 @@ export class Play extends Phaser.Scene {
             if(blocker.x - blocker.width < enemy.x + enemy.width && blocker.x + blocker.width > enemy.x - enemy.width && !enemy.isDodging && blocker.y <= enemy.y && !enemy.isDown){ //Am I on a collision course with an obstacle, and am I alive?
                 enemy.tween.stop(); //Stop moving side to side
                 enemy.isDodging = true; //I am going to dodge now, don't do anything to mess up my behavior
-                enemy.tween = this.add.tween({targets: enemy}); //Create a tween to go left or right
                 var newPos = enemy.findNewPosition(blocker); //Decide where I want to go
-                enemy.tween.updateTo({x:newPos[0], y:newPos[1]}, 5000/this.road.speed, "Linear"); //Set my new destination
-                enemy.tween.play(); //Go there
+                enemy.tween = this.add.tween({
+                    targets: enemy,
+                    x: newPos[0],
+                    y: newPos[1],
+                    duration: Math.max(5000/this.road.speed, 2000)
+                }); //Create a tween to go left or right
                 enemy.tween.on("complete", function(){ //Once I'm done, I've stopped dodging.
                     enemy.isDodging = false;
                 });
                 enemy.shouldMoveC = 0; //Set counter for number of frames I've moved.
-                enemy.tween.on("update", enemy.updatePos, enemy); //Check if I need to go, change "this" references to enemy object.
+                enemy.tween.on("update", enemy.updatePos.bind(this, enemy)); //Check if I need to go, change "this" references to enemy object.
             }
         }
         this.enemySpawn = this.time.addEvent({delay: 3000, loop: true, callback: this.createEnemy.bind(this)});

@@ -1,5 +1,5 @@
 import * as Scenes from "./scenes/Scenes.js";
-import { soundManager } from "../lib/Sound.js";
+import { soundManager } from "./lib/Sound.js";
 /* Tyler Knowlton
 Not Spy Hunter
 Started: 10:54 at 5/8
