@@ -61,6 +61,12 @@ export class Start extends Phaser.Scene {
                             button.alpha = 1;
                             text.alpha = 1;
                             this.cameras.main.shake(100, 0.01);
+
+                            this.add.text(game.config.width/2, 3 * game.config.height/4, "By Ambiguousname.\nPhaser 3 Weapon Plugin by 16patsle", {
+                                fill: "#ffffff",
+                                font: (100 * game.config.width/1920) + "px Arial",
+                                align: "center"
+                             }).setOrigin(0.5);
                         }.bind(this), 800);
                     }.bind(this), 800);
                 }.bind(this), 500);

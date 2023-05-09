@@ -2,6 +2,8 @@ import * as Scenes from "./scenes/Scenes.js";
 /* Tyler Knowlton
 Not Spy Hunter
 Started: 10:54 at 5/8
+Finished: 23:46 at 5/8
+So roughly 12 hours.
 
 Todo:
 - Looping Background Music
@@ -20,7 +22,7 @@ window.game = new Phaser.Game({
 	width: window.innerWidth,
 	height: window.innerHeight,
 	parent: "game",
-	scene: [Scenes.Play, Scenes.Start],
+	scene: [Scenes.Start, Scenes.Play],
 	physics: {
 		default: 'arcade'
 	},
