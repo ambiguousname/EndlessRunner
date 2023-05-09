@@ -657,7 +657,7 @@ export class Play extends Phaser.Scene {
                     loop.pendingDelete = true;
                 }
                 this.skid(sprite);
-            }});
+            }.bind(this)});
             loop.cT = 0;
         }
         if(this.canInput){
@@ -1029,43 +1029,43 @@ export class Play extends Phaser.Scene {
                 this.player.removeChild(this.player.gun);
                 this.player.addChild(this.player.gun);*/
                 this.player.gun.canShoot = false;
-                if(this.player.scale.x > 1.6 * game.config.width/3000 && this.midair === false){
+                this.player.depth = 5;
+                if(this.player.sprite.scale > 4 * game.config.width/3000 && this.midair === false){
                     this.midair = true;
                     setTimeout(function(){
                         this.arc = true;
                         this.jumping = false;
                         this.midair = false;
-                    }, 500);
+                    }.bind(this), 500);
                 } else {
                     // this.constant.volume += 0.01;
                     //SOUND
                     this.midair = false;
-                    this.player.scale.x += 0.02 * (game.config.width/3000);
-                    this.player.scale.y += 0.02 * (game.config.width/3000);
+                    this.player.sprite.setScale(this.player.sprite.scale + 0.02 * (game.config.width/3000));
                     this.shadow.x += 2;
-                    this.player.x -= 2;
+                    this.player.sprite.x -= 2;
                     this.#targetAngle = 0;
                 }
             } else if (this.arc){
-                this.player.scale.x -= 0.02 * (game.config.width/3000);
-                this.player.scale.y -= 0.02 * (game.config.width/3000);
+                this.player.sprite.setScale(this.player.sprite.scale - 0.02 * (game.config.width/3000));
                 this.shadow.x -= 2;
-                this.player.x += 2;
+                this.player.sprite.x += 2;
                 // this.constant.volume -= 0.01;
                 //SOUND
-                if(this.player.scale.x <= game.config.width/3000){
+                if(this.player.scale <= game.config.width/3000){
                     this.arc = false;
                     this.player.gun.alpha = 1;
-                    skidTimeInt(50, this.player);
+                    skidTimeInt.call(this, 50, this.player);
+                    this.player.depth = 0;
                     this.cameras.main.shake(500, 0.02);
                     this.player.smoke.emitting = true;
-                    this.player.setScale(game.config.width/3000);
+                    this.player.sprite.setScale(1);
+                    this.player.sprite.x = 0;
+                    this.player.sprite.y = 0;
                     this.shadow.x = 10;
                     this.shadow.y = 12;
                     this.canInput = true;
                     this.player.gun.canShoot = true;
-                    this.player.removeChild(this.player.gun);
-                    this.player.addChildAt(this.player.gun, 0);
                 }
             }
             this.skG.getChildren().forEach(function(i){
