@@ -25,7 +25,7 @@ export let soundManager = {
 		sound.playbackRate.value = 1;
 		
 		let gain = this.audioCtx.createGain();
-		gain.gain.value = volume;
+		gain.gain.value = volume * 0.3;
 		gain.connect(this.audioCtx.destination);
 
 		sound.connect(gain);

@@ -515,19 +515,16 @@ export class Play extends Phaser.Scene {
             // }
         this.canInput = false;
         
-        if (localStorage.getItem("tutorial") === null) {
-            this.tutorial = this.add.image(0, 0, "tutorial");
-            this.tutorial.setScale(2);
-            localStorage.setItem("tutorial", true);
-            this.player.add(this.tutorial);
-            setTimeout(function(){
-                this.add.tween({
-                    targets: this.tutorial,
-                    alpha: 0,
-                    duration: 1000
-                });
-            }.bind(this), 5000);
-        }
+        this.tutorial = this.add.image(0, 0, "tutorial");
+        this.tutorial.setScale(2);
+        this.player.add(this.tutorial);
+        setTimeout(function(){
+            this.add.tween({
+                targets: this.tutorial,
+                alpha: 0,
+                duration: 1000
+            });
+        }.bind(this), 5000);
     }
 
     death(p, b) {
