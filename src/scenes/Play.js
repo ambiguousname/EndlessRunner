@@ -57,6 +57,7 @@ export class Play extends Phaser.Scene {
             fill: "#ffffff",
             font: (game.config.width/800 * 25) + "px Arial"
         });
+        this.speedDisplay.setDepth(5);
         //Skid marks:
         this.destBlockGroup = this.add.group();
         this.skG = this.add.group();
@@ -72,10 +73,10 @@ export class Play extends Phaser.Scene {
 
         this.psd = true;
 
-        if(false){
+        if(localStorage.getItem("start") === null){
             //TODO: Fix
-            this.shadowT = this.add.sprite(game.config.width, game.config.height/2, 'truck');
-            var truck = this.add.sprite(game.config.width, game.config.height/2, 'truck');
+            this.shadowT = this.physics.add.sprite(game.config.width, game.config.height/2, 'truck');
+            let truck = this.physics.add.sprite(game.config.width, game.config.height/2, 'truck');
             this.shadowT.alpha = 0.8;
             this.shadowT.tint = 0x000000;
             this.shadowT.truck = truck;
@@ -85,48 +86,85 @@ export class Play extends Phaser.Scene {
             truck.setOrigin(0.5);
             this.shadowT.setOrigin(0.5);
             truck.x += truck.width/2;
-            var truckTweenX = this.add.tween(truck);
-            truckTweenX.updateTo({x: this.road.x + this.road.width + truck.width/2}, 3000);
-            var truckTweenY = this.add.tween(truck);
-            truckTweenY.updateTo({y: game.config.height - truck.height/2 - 100}, 2000);
-            truckTweenX.chain(truckTweenY);
-            truck.animations.add('destroy');
-            truckTweenY.onComplete.add(function(){
-                var exp = this.add.sprite(0, 0, 'explosion');
-                exp.setOrigin(0.5);
-                exp.setScale(3 * game.config.width/800);
-                exp.anim = exp.animations.add('explode');
-                var dec = false;
-                this.blockGroup.add(this.shadowT);
-                this.blockGroup.add(truck);
-                var int = setInterval(function(){
-                    if(exp.anim.frame >= 7){
-                        dec = true;
-                    }
-                    if(!dec){
-                        exp.scale.x += 0.01 * game.config.width/800;
-                        exp.scale.y += 0.01 * game.config.width/800;
-                    } else {
-                        exp.scale.x -= 0.01 * game.config.width/800;
-                        exp.scale.y -= 0.01 * game.config.width/800;
-                    }
-                }, 1);
-                exp.anim.onComplete.add(function(){
-                    clearInterval(int);
-                    exp.destroy();
-                }, this);
-                exp.car = truck;
-                this.expGroup.add(exp);
-                truck.animations.frame = 1;
-                this.shadowT.animations.frame = 1;
-                this.cameras.main.shake(0.05, 500);
-                exp.animations.play('explode', 12, false);
-                startGame();
+            var truckTweenX = this.add.tween({
+                targets: truck,
+                x: this.road.x + this.road.width/2 + truck.width/2,
+                duration: 3000
             });
-            truckTweenX.play();
-            localStorage.setItem("start", true);
+            var truckTweenY = this.add.tween({
+                targets: truck,
+                y: game.config.height - truck.height/2 - 100,
+                duration: 2000,
+                paused: true,
+            });
+            truckTweenX.on("complete", () => {
+                truckTweenY.play();
+            });
+
+            
+            truckTweenY.on("complete", function(){
+                this.add.tween({
+                    targets: this.player,
+                    y: {from: truck.y + this.player.height/2, to: truck.y + this.player.height},
+                    x: {from: truck.x, to: truck.x},
+                    duration: 1000
+                });
+                let truckT = this.add.tween({
+                    targets: [truck, this.shadowT],
+                    y: truck.y - truck.height,
+                    x: truck.x + 1.5 * truck.width,
+                    angle: 30,
+                    duration: 1500,
+                    delay: 1000,
+                });
+                truckT.on("complete", function(){
+                    var exp = this.add.sprite(truck.x, truck.y, 'explosion');
+                    exp.setOrigin(0.5);
+                    exp.setScale(3 * game.config.width/800);
+                    var dec = false;
+                    this.blockGroup.add(this.shadowT);
+                    this.blockGroup.add(truck);
+                    var int = setInterval(function(){
+                        if(exp.frame.name === "explosion7"){
+                            truck.setFrame(1);
+                            this.shadowT.setFrame(1);
+                            dec = true;
+                        }
+                        if(!dec){
+                            exp.setScale(exp.scale + 0.01 * game.config.width/800);
+                        } else {
+                            exp.setScale(exp.scale - 0.01 * game.config.width/800);
+                        }
+                    }.bind(this), 1);
+                    exp.on("animationcomplete", function(){
+                        clearInterval(int);
+                        exp.destroy();
+                    }, this);
+                    exp.car = truck;
+                    this.expGroup.add(exp);
+                    this.cameras.main.shake(500, 0.05);
+                    exp.play("explode");
+                    localStorage.setItem("start", true);
+                    this.startGame();
+                    
+                    this.canInput = true;
+                    this.player.body.setCollideWorldBounds(true);
+                    this.player.tween = null;
+                }.bind(this));
+            }.bind(this));
         } else {
             this.startGame();
+            
+            this.player.tween = this.add.tween({
+                targets: this.player,
+                y: game.config.height - 50,
+                duration: 1000 
+            });
+            this.player.tween.on("complete", function(){
+                this.canInput = true;
+                this.player.body.setCollideWorldBounds(true);
+                this.player.tween = null;
+            }, this);
         }
     }
 
@@ -212,32 +250,6 @@ export class Play extends Phaser.Scene {
         this.player.maxHealth = 100;
         this.fire = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
         this.altFire = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-
-        this.player.tween = this.add.tween({
-            targets: this.player,
-            y: game.config.height - 50,
-            duration: 1000 
-        });
-        this.player.tween.on("complete", function(){
-            this.canInput = true;
-            this.player.body.setCollideWorldBounds(true);
-            this.player.tween = null;
-        }, this);
-
-        
-        if (localStorage.getItem("tutorial") === null) {
-            this.tutorial = this.add.image(0, 0, "tutorial");
-            this.tutorial.setScale(2);
-            localStorage.setItem("tutorial", true);
-            this.player.add(this.tutorial);
-            setTimeout(function(){
-                this.add.tween({
-                    targets: this.tutorial,
-                    alpha: 0,
-                    duration: 1000
-                });
-            }.bind(this), 5000);
-        }
     }
 
     
@@ -383,7 +395,7 @@ export class Play extends Phaser.Scene {
             sound.playbackRate.value = Math.random() * 2;
             var dec = false;
             var int = setInterval(function(){
-                if(enemy.e.currentFrame >= 7){
+                if(enemy.e.frame.name === "explosion7"){
                     dec = true;
                 }
                 if(!dec){
@@ -492,6 +504,20 @@ export class Play extends Phaser.Scene {
             //     }   
             // }
         this.canInput = false;
+        
+        if (localStorage.getItem("tutorial") === null) {
+            this.tutorial = this.add.image(0, 0, "tutorial");
+            this.tutorial.setScale(2);
+            localStorage.setItem("tutorial", true);
+            this.player.add(this.tutorial);
+            setTimeout(function(){
+                this.add.tween({
+                    targets: this.tutorial,
+                    alpha: 0,
+                    duration: 1000
+                });
+            }.bind(this), 5000);
+        }
     }
 
     death(p, b) {
@@ -556,7 +582,7 @@ export class Play extends Phaser.Scene {
                     exp.play('explode');
                     var dec = false;
                     var int = setInterval(function(){
-                        if(exp.frame >= 7){
+                        if(exp.frame.name === "explosion7"){
                             dec = true;
                         }
                         if(!dec){
@@ -768,7 +794,7 @@ export class Play extends Phaser.Scene {
         }
         if(!this.psd){
             this.expGroup.getChildren().forEach(function(e){
-                e.setPosition(e.car.x + e.car.width/2, e.car.y + e.car.height/2);
+                e.setPosition(e.car.x, e.car.y);
             });
             if(this.player.health > 0){
                 this.road.speed += 0.002;
@@ -859,6 +885,9 @@ export class Play extends Phaser.Scene {
             this.road.tilePositionY -= this.road.speed /  (game.config.height/600);
             if(!(this.jumping || this.arc)){
                 this.physics.overlap(this.blockGroup, this.player.weapon.bullets, function(blocker, b){
+                    if (blocker.texture.key === "truck"){
+                        return;
+                    }
                     if(b.hp){
                         b.hp -= 1;
                         if(b.hp <= 0){
