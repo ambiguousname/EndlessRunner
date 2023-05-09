@@ -19,13 +19,18 @@ export let soundManager = {
 		};
 		xhr.send();
 	},
-	play: function(key, loop){
+	play: function(key, loop=false, volume=1){
 		var sound = this.audioCtx.createBufferSource();
 		sound.buffer = this.buffers[key];
 		sound.playbackRate.value = 1;
-		sound.connect(this.audioCtx.destination);
+		
+		let gain = this.audioCtx.createGain();
+		gain.gain.value = volume;
+		gain.connect(this.audioCtx.destination);
+
+		sound.connect(gain);
 		sound.loop = loop;
-		// sound.start(0);
+		sound.start(0);
 		//Don't want any sound yet
 		return sound;
 	}

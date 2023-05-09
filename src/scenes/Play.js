@@ -14,9 +14,6 @@ export class Play extends Phaser.Scene {
         this.load.image("pad", "./assets/images/Pad.png");
         this.load.image("charge", "./assets/images/particle.png");
         this.load.spritesheet("smoke", "./assets/images/smoke.png", { frameWidth: 30, frameHeight: 27});
-        soundManager.load("carSound", "./assets/sounds/standardVroomTEMP.mp3");
-        soundManager.load('crash', './assets/sounds/explosionTEMP.mp3');
-        soundManager.load('fire', './assets/sounds/powTEMP.mp3');
         this.load.image('gun', './assets/images/gun.png');
         this.load.image('skid', './assets/images/skid.png');
         this.load.spritesheet('truck', './assets/images/truckPixel.png', { frameWidth: 75, frameHeight: 202} );
@@ -32,6 +29,13 @@ export class Play extends Phaser.Scene {
         graphics.fillRect(0, 0, 100, 50);
         graphics.generateTexture("button", 100, 50);
         graphics.destroy();
+
+        
+        soundManager.load("carSound", "./assets/sounds/carConstant.mp3");
+        soundManager.load('crash', './assets/sounds/explosion.mp3');
+        soundManager.load('fire', './assets/sounds/fire.mp3');
+        soundManager.load("hit", "./assets/sounds/hit.mp3");
+        soundManager.load("music", "./assets/sounds/music.mp3");
     }
 
     create() {
@@ -121,6 +125,7 @@ export class Play extends Phaser.Scene {
                     var exp = this.add.sprite(truck.x, truck.y, 'explosion');
                     exp.setOrigin(0.5);
                     exp.setScale(3 * game.config.width/800);
+                    soundManager.play("crash", false, 0.5);
                     var dec = false;
                     this.blockGroup.add(this.shadowT);
                     this.blockGroup.add(truck);
@@ -234,15 +239,18 @@ export class Play extends Phaser.Scene {
         // this.brakeSound.played = false;
         // this.constant = this.add.sound('constant', 0.1, true);
         // this.constant.play();
-        this.constant = soundManager.play("carSound", true);
+        this.constant = soundManager.play("carSound", true, 0.2);
+        // this.constant.volume = 0.01;
         this.constant.playbackRate.value = this.road.speed * 0.001;
+
+        this.music = soundManager.play("music", true, 0.6);
 
         this.player.weapon = this.add.weapon(10, 'bullet');
         this.player.weapon.bulletSpeed = 500;
         this.player.weapon.fireRate = 600;
         this.player.weapon.on("fire", function(bullet){
             var sound = soundManager.play('fire');
-            sound.playbackRate.value = Math.random() * (3 - 2) + 2;
+            sound.playbackRate.value = (Math.random() * 0.3 + 0.7);
             this.cameras.main.shake(100, 0.01);
             bullet.setScale(game.config.width/1200);
         }, this);
@@ -377,7 +385,8 @@ export class Play extends Phaser.Scene {
             if(this.player.health > 0){
                 enemy.weapon.fireFrom.setPosition(enemy.x, enemy.y)
                 enemy.weapon.fire();
-                // this.add.sound('fire', 0.7).play();
+                let fire = soundManager.play("fire", false, 0.7);
+                fire.playbackRate.value = Math.random() * 0.3 + 0.3;
             }
         }.bind(this)});
         enemy.health = 100;
@@ -392,8 +401,8 @@ export class Play extends Phaser.Scene {
             enemy.e.angle = Math.floor(Math.random() * 360);
             enemy.rotate = (Math.random() * 2) - 1;
             enemy.e.play("explode");
-            var sound = soundManager.play('crash');
-            sound.playbackRate.value = Math.random() * 2;
+            var sound = soundManager.play('crash', false, 0.5);
+            sound.playbackRate.value = Math.random() * 0.7 + 0.5;
             var dec = false;
             var int = setInterval(function(){
                 if(enemy.e.frame.name === "explosion7"){
@@ -525,8 +534,8 @@ export class Play extends Phaser.Scene {
         if (this.dying) {
             return;
         }
-        var sound = soundManager.play('crash');
-        sound.playbackRate.value = Math.random() * 2;
+        var sound = soundManager.play('crash', false, 0.5);
+        sound.playbackRate.value = Math.random() * 0.7 + 0.5;
         setTimeout(function(){
             this.psd = false;
             this.physics.isPaused = false;
@@ -541,6 +550,7 @@ export class Play extends Phaser.Scene {
 
             button.setInteractive({useHandCursor: true});
             button.on("pointerdown", function(){
+                this.music.stop();
                 this.scene.start('Play');
             }, this);
 
@@ -564,9 +574,9 @@ export class Play extends Phaser.Scene {
                 //SOUND
                 // this.carSound.pause();
                 // this.brakeSound.pause();
-                // this.constant.pause();
                 game.played = true;
                 this.canInput = false;
+                this.constant.stop();
                 this.player.sprite.setFrame(2); //Show damage on the car
                 this.player.body.velocity.y -= 10 + Math.floor(this.road.speed * 200); //Road stops, launch player
                 this.player.body.collideWorldBounds = false;
@@ -694,7 +704,8 @@ export class Play extends Phaser.Scene {
         this.#elapsed = now - this.#time;
         this.playerRotate();
 
-        this.constant.playbackRate.value = this.road.speed;
+        this.constant.playbackRate.value = this.road.speed - this.player.body.velocity.y/1000;
+        this.music.playbackRate.value = Math.log(this.road.speed + 2);
         if(this.shadowT){
             this.shadowT.x = this.shadowT.truck.x + 5;
             this.shadowT.y = this.shadowT.truck.y + 5;
@@ -890,6 +901,8 @@ export class Play extends Phaser.Scene {
             this.road.tilePositionY -= this.road.speed /  (game.config.height/600);
             if(!(this.jumping || this.arc)){
                 this.physics.overlap(this.blockGroup, this.player.weapon.bullets, function(blocker, b){
+                    let hit = soundManager.play("hit");
+                    hit.playbackRate.value = Math.random() * 0.5 + 0.5;
                     if (blocker.texture.key === "truck"){
                         return;
                     }
@@ -970,6 +983,8 @@ export class Play extends Phaser.Scene {
                 enemy.health -= 50;
                 enemy.sprite.setFrame(3);
                 enemy.playerFire = true;
+                let hit = soundManager.play("hit");
+                hit.playbackRate.value = Math.random() * 0.5 + 0.5;
                 if(enemy.health <= 0 && !enemy.isDown){
                     enemy.die();
                     enemy.isRoading = true;

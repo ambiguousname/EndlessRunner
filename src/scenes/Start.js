@@ -23,7 +23,7 @@ export class Start extends Phaser.Scene {
             fill:"#ffffff",
             font: (100 * game.config.width/1920) +"px Arial"
         });
-        var subtitleText = this.add.text(game.config.width/2, game.config.height/8 + (90 * game.config.height/921), "(A spiritual successor to Spy Hunter)", {
+        var subtitleText = this.add.text(game.config.width/2, game.config.height/8 + (90 * game.config.height/921), "(It's like Spy Hunter)", {
            fill: "#ffffff",
            font: (30 * game.config.width/1920) + "px Arial"
         });
@@ -62,7 +62,7 @@ export class Start extends Phaser.Scene {
                             text.alpha = 1;
                             this.cameras.main.shake(100, 0.01);
 
-                            this.add.text(game.config.width/2, 3 * game.config.height/4, "By Ambiguousname.\nPhaser 3 Weapon Plugin by 16patsle", {
+                            this.add.text(game.config.width/2, 3 * game.config.height/4, "By Ambiguousname.\nPhaser 3 Weapon Plugin by 16patsle.\nSounds from http://bbcsfx.acropolis.org.uk/", {
                                 fill: "#ffffff",
                                 font: (100 * game.config.width/1920) + "px Arial",
                                 align: "center"
