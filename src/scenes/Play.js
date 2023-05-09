@@ -182,6 +182,7 @@ export class Play extends Phaser.Scene {
             lifespan: 1000,
             maxAliveParticles: 1000,
             frequency: 1,
+            rotate: {start: 0, end: 360, random: true},
             alpha: {min: 0.4, max: 0.7},
             frame: {frames: [0, 1, 2, 3], cycle: false},
             scale: game.config.width/1000,
