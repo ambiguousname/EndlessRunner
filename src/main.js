@@ -14,6 +14,8 @@ Phaser 3 Weapon Plugin: https://github.com/16patsle/phaser3-weapon-plugin
 
 SFX and Music modified from https://sound-effects.bbcrewind.co.uk/
 
+Button Prompts from https://thoseawesomeguys.com/prompts/
+
 */
 
 window.game = new Phaser.Game({
